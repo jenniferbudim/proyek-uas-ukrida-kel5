@@ -1,6 +1,7 @@
 package com.example.kiptrack.ui.screen // <-- ADDED/FIXED PACKAGE DECLARATION
 
 import androidx.compose.animation.Crossfade
+import com.example.kiptrack.R
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -279,7 +280,7 @@ fun GeneralLoginScreen(
                         colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = DeepPurple)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Settings,
+                            painter = painterResource(id = R.drawable.adminbutton),
                             contentDescription = "Admin Login",
                             modifier = Modifier.size(30.dp)
                         )
@@ -316,7 +317,7 @@ fun AdminLoginScreen(
 
             // Logo
             Icon(
-                imageVector = Icons.Filled.Face,
+                painter = painterResource(id = R.drawable.kiptrack),
                 contentDescription = "Logo",
                 modifier = Modifier.size(100.dp),
                 tint = Color.White
