@@ -1,4 +1,4 @@
-package com.example.kiptrack.ui.screen // <-- ADDED/FIXED PACKAGE DECLARATION
+package com.example.kiptrack.ui.screen
 
 import androidx.compose.animation.Crossfade
 import com.example.kiptrack.R
@@ -30,127 +30,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
-
-// --- Data Classes (Integrated from request) ---
-
-data class UserMahasiswa(
-    val nim: String,
-    val nama: String,
-    val password: String
-)
-
-data class UserWali(
-    val id: String,
-    val nama: String,
-    val password: String
-)
-
-data class UserAdmin(
-    val id: String,
-    val username: String,
-    val password: String
-)
-
-// --- Color Palette based on images ---
-val LightPurple = Color(0xFFF3E5F5)
-val MediumPurple = Color(0xFFCE93D8)
-val DeepPurple = Color(0xFF9575CD)
-val TextLabelColor = Color(0xFF7E57C2)
-val BackgroundGradientStart = Color(0xFFD1C4E9)
-val BackgroundGradientEnd = Color(0xFFEDE7F6)
-
-// --- MVVM: State ---
-data class LoginUiState(
-    val isGeneralLogin: Boolean = true, // true = General, false = Admin
-    val selectedRole: UserRole = UserRole.MAHASISWA,
-    val inputId: String = "", // Represents NIM for Mahasiswa, ID for Wali, Username for Admin
-    val password: String = "",
-    val isLoading: Boolean = false,
-    val errorMessage: String? = null
-)
+import com.example.kiptrack.ui.data.UserAdmin
+import com.example.kiptrack.ui.data.UserMahasiswa
+import com.example.kiptrack.ui.data.UserWali
+import com.example.kiptrack.ui.event.LoginEvent
+import com.example.kiptrack.ui.state.LoginUiState
+import com.example.kiptrack.ui.theme.BackgroundGradientStart
+import com.example.kiptrack.ui.theme.DeepPurple
+import com.example.kiptrack.ui.theme.LightPurple
+import com.example.kiptrack.ui.theme.MediumPurple
+import com.example.kiptrack.ui.theme.TextLabelColor
+import com.example.kiptrack.ui.viewmodel.LoginViewModel
 
 enum class UserRole(val label: String) {
     MAHASISWA("MAHASISWA"),
     ORANG_TUA("ORANG TUA/WALI")
 }
 
-// --- MVVM: Events ---
-sealed interface LoginEvent {
-    data class OnIdChange(val value: String) : LoginEvent
-    data class OnPasswordChange(val value: String) : LoginEvent
-    data class OnRoleSelected(val role: UserRole) : LoginEvent
-    object OnToggleAdminMode : LoginEvent
-    object OnLoginClicked : LoginEvent
-}
-
-// --- MVVM: ViewModel ---
-class LoginViewModel : ViewModel() {
-    var uiState by mutableStateOf(LoginUiState())
-        private set
-
-    fun onEvent(event: LoginEvent) {
-        when (event) {
-            is LoginEvent.OnIdChange -> {
-                uiState = uiState.copy(inputId = event.value, errorMessage = null)
-            }
-            is LoginEvent.OnPasswordChange -> {
-                uiState = uiState.copy(password = event.value, errorMessage = null)
-            }
-            is LoginEvent.OnRoleSelected -> {
-                uiState = uiState.copy(selectedRole = event.role, inputId = "", password = "", errorMessage = null)
-            }
-            is LoginEvent.OnToggleAdminMode -> {
-                // Switch screens and reset inputs
-                uiState = uiState.copy(
-                    isGeneralLogin = !uiState.isGeneralLogin,
-                    inputId = "",
-                    password = "",
-                    errorMessage = null
-                )
-            }
-            is LoginEvent.OnLoginClicked -> {
-                performLogin()
-            }
-        }
-    }
-
-    private fun performLogin() {
-        val currentId = uiState.inputId
-        val currentPassword = uiState.password
-
-        if (currentId.isBlank() || currentPassword.isBlank()) {
-            uiState = uiState.copy(errorMessage = "Form tidak boleh kosong")
-            return
-        }
-
-        uiState = uiState.copy(isLoading = true)
-
-        // Simulating data processing
-        if (uiState.isGeneralLogin) {
-            when (uiState.selectedRole) {
-                UserRole.MAHASISWA -> {
-                    println("Login Request: Mahasiswa (NIM: $currentId)")
-                    val potentialUser = UserMahasiswa(nim = currentId, nama = "Mahasiswa Test", password = currentPassword)
-                }
-                UserRole.ORANG_TUA -> {
-                    println("Login Request: Wali (ID: $currentId)")
-                    val potentialUser = UserWali(id = currentId, nama = "Wali Test", password = currentPassword)
-                }
-            }
-        } else {
-            println("Login Request: Admin (Username: $currentId)")
-            val potentialUser = UserAdmin(id = "admin_01", username = currentId, password = currentPassword)
-        }
-
-        // Reset loading for demo
-        uiState = uiState.copy(isLoading = false)
-    }
-}
-
-// --- Main Screen Composable ---
 @Composable
 fun LoginScreen(
-    modifier: Modifier = Modifier, // <--- ADD THIS
+    modifier: Modifier = Modifier,
     viewModel: LoginViewModel = viewModel()
 ) {
     val state = viewModel.uiState
@@ -175,7 +74,7 @@ fun LoginScreen(
     }
 }
 
-// --- General Login UI (First Image) ---
+// General Login UI
 @Composable
 fun GeneralLoginScreen(
     state: LoginUiState,
@@ -196,7 +95,7 @@ fun GeneralLoginScreen(
                 painter = painterResource(id = R.drawable.kiptrack),
                 contentDescription = "Logo",
                 modifier = Modifier.size(100.dp),
-                tint = Color.White
+                tint = Color.Unspecified
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
@@ -292,7 +191,7 @@ fun GeneralLoginScreen(
     }
 }
 
-// --- Admin Login UI (Second Image) ---
+// Admin Login
 @Composable
 fun AdminLoginScreen(
     state: LoginUiState,
@@ -320,7 +219,7 @@ fun AdminLoginScreen(
                 painter = painterResource(id = R.drawable.kiptrack),
                 contentDescription = "Logo",
                 modifier = Modifier.size(100.dp),
-                tint = Color.White
+                tint = Color.Unspecified
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -376,8 +275,7 @@ fun AdminLoginScreen(
     }
 }
 
-// --- Reusable Components ---
-
+// Reusable Components
 @Composable
 fun LoginForm(
     idLabel: String,
