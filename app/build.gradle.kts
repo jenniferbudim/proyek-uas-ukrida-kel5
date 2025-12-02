@@ -58,6 +58,15 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 
+    //Firebase
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.6.0"))
+    // Add the dependency for the Firebase Authentication library
+    implementation("com.google.firebase:firebase-auth")
+    // Add the dependency for the Cloud Firestore library
+    implementation("com.google.firebase:firebase-firestore")
+
+
     // Retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     // Converter Gson (untuk JSON parsing)
