@@ -10,10 +10,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
@@ -21,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -36,26 +35,27 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.Transaction
+import com.example.kiptrack.ui.theme.DeepPurple
+import com.example.kiptrack.ui.theme.LightPurple
+import com.example.kiptrack.ui.theme.TextLabelColor
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModelFactory
-// --- START: Import colors from the theme package ---
-import com.example.kiptrack.ui.theme.LightPurple
-import com.example.kiptrack.ui.theme.MediumPurple
-import com.example.kiptrack.ui.theme.DeepPurple
-import com.example.kiptrack.ui.theme.TextLabelColor
-// --- END: Import colors from the theme package ---
 import java.text.NumberFormat
 import java.util.Locale
 
 // Helper for formatting currency
 fun formatRupiah(amount: Long): String {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
+    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     formatter.maximumFractionDigits = 0
     return formatter.format(amount).replace("Rp", "Rp ")
 }
 
 @Composable
-fun DashboardMahasiswaScreen(uid: String) {
+fun DashboardMahasiswaScreen(
+    uid: String,
+    onNavigateToProfile: (String) -> Unit,
+    onNavigateToLogForm: (String) -> Unit
+) {
     val viewModel: DashboardMahasiswaViewModel = viewModel(
         factory = DashboardMahasiswaViewModelFactory(uid)
     )
@@ -76,7 +76,6 @@ fun DashboardMahasiswaScreen(uid: String) {
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // ... (Judul & Loading tetap sama) ...
                 Text(
                     text = "Dashboard Mahasiswa",
                     fontSize = 20.sp,
@@ -88,11 +87,15 @@ fun DashboardMahasiswaScreen(uid: String) {
                 if (state.isLoading) {
                     CircularProgressIndicator(color = DeepPurple)
                 } else {
-                    HeaderSection(state.userName)
+                    HeaderSection(
+                        userName = state.userName,
+                        uid = uid,
+                        onNavigateToProfile = onNavigateToProfile,
+                        onNavigateToLogForm = onNavigateToLogForm
+                    )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // UPDATE: Kirim parameter tahun dan fungsi ganti tahun
                     SaldoChartSection(
                         currentSaldo = state.currentSaldo,
                         graphData = state.graphData,
@@ -111,7 +114,12 @@ fun DashboardMahasiswaScreen(uid: String) {
 }
 
 @Composable
-fun HeaderSection(userName: String) {
+fun HeaderSection(
+    userName: String,
+    uid: String,
+    onNavigateToProfile: (String) -> Unit,
+    onNavigateToLogForm: (String) -> Unit
+) {
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -132,7 +140,9 @@ fun HeaderSection(userName: String) {
             ) {
                 // Avatar
                 AsyncImageMock(
-                    modifier = Modifier.size(50.dp)
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clickable { onNavigateToProfile(uid) }
                 )
 
                 Spacer(modifier = Modifier.width(14.dp))
@@ -156,7 +166,7 @@ fun HeaderSection(userName: String) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .clickable { /* Handle click */ }
+                    .clickable { onNavigateToLogForm(uid) }
                     .padding(start = 8.dp)
             ) {
                 Text(
@@ -169,7 +179,7 @@ fun HeaderSection(userName: String) {
                     imageVector = Icons.Filled.AddCircle,
                     contentDescription = "Add",
                     tint = DeepPurple,
-                    modifier = Modifier.size(36.dp) // Slightly adjusted size
+                    modifier = Modifier.size(36.dp)
                 )
             }
         }
@@ -183,7 +193,6 @@ fun SaldoChartSection(
     selectedYear: Int,
     onYearChange: (Int) -> Unit
 ) {
-    // Label Sumbu X Statis (Jan - Des)
     val months = listOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
 
     Card(
@@ -193,7 +202,6 @@ fun SaldoChartSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            // Header Saldo
             Text(
                 text = "Saldo Uang Saku",
                 fontSize = 14.sp,
@@ -209,14 +217,13 @@ fun SaldoChartSection(
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // --- NAVIGASI TAHUN ---
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
             ) {
                 IconButton(onClick = { onYearChange(-1) }) {
-                    Icon(Icons.Filled.KeyboardArrowLeft, contentDescription = "Prev Year", tint = DeepPurple)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev Year", tint = DeepPurple)
                 }
                 Text(
                     text = "$selectedYear",
@@ -226,15 +233,14 @@ fun SaldoChartSection(
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 IconButton(onClick = { onYearChange(1) }) {
-                    Icon(Icons.Filled.KeyboardArrowRight, contentDescription = "Next Year", tint = DeepPurple)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next Year", tint = DeepPurple)
                 }
             }
 
-            // --- AREA GRAFIK ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp) // Tinggi grafik diperbesar sedikit biar jelas
+                    .height(150.dp)
                     .padding(horizontal = 8.dp)
             ) {
                 LineChart(data = graphData, modifier = Modifier.fillMaxSize())
@@ -242,7 +248,6 @@ fun SaldoChartSection(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // --- LABEL BULAN (X-AXIS) ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -250,7 +255,7 @@ fun SaldoChartSection(
                 months.forEach { month ->
                     Text(
                         text = month,
-                        fontSize = 9.sp, // Ukuran font kecil agar muat 12 bulan
+                        fontSize = 9.sp,
                         color = Color.Gray,
                         fontWeight = FontWeight.Medium
                     )
@@ -260,29 +265,23 @@ fun SaldoChartSection(
     }
 }
 
-// LineChart tetap sama, hanya menerima List<Long> values
 @Composable
 fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
     if (data.isEmpty()) return
 
-    // Kita set max value dinamis. Jika semua data 0 (tahun kosong), set max jadi 1 biar ga error division by zero
     val maxValue = data.maxOrNull()?.takeIf { it > 0 } ?: 1L
-    val minValue = 0L // Base grafik selalu 0
+    val minValue = 0L
 
     Canvas(modifier = modifier) {
         val width = size.width
         val height = size.height
-        // Jarak antar titik (dibagi 11 karena ada 12 titik, mulai dari index 0)
         val stepX = width / 11f
 
         val path = Path()
         var previousPoint: Offset? = null
 
         data.forEachIndexed { index, value ->
-            // Normalisasi nilai Y (0 ada di bawah, Max ada di atas)
             val normalizedY = value.toFloat() / maxValue.toFloat()
-
-            // Koordinat Y: (height * 0.1) padding bawah, (height * 0.8) area gambar
             val y = height - (normalizedY * height * 0.8f + height * 0.1f)
             val x = index * stepX
 
@@ -290,29 +289,23 @@ fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
 
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
 
-            // Gambar Garis Penghubung
             if (previousPoint != null) {
                 drawLine(
                     color = DeepPurple,
-                    start = previousPoint!!,
+                    start = previousPoint,
                     end = currentPoint,
                     strokeWidth = 2.dp.toPx(),
                     cap = StrokeCap.Round
                 )
             }
 
-            // Gambar Titik (Dot)
             drawCircle(color = DeepPurple, radius = 3.dp.toPx(), center = currentPoint)
-            drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = currentPoint) // Titik tengah putih
+            drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = currentPoint)
 
             previousPoint = currentPoint
         }
-
-        // (Opsional) Gambar Stroke Grafik
-        // drawPath(path, color = DeepPurple, style = Stroke(width = 2.dp.toPx()))
     }
 }
-
 
 @Composable
 fun TransactionHistorySection(transactions: List<Transaction>) {
@@ -331,7 +324,6 @@ fun TransactionHistorySection(transactions: List<Transaction>) {
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
             )
 
-            // Items List
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -344,7 +336,6 @@ fun TransactionHistorySection(transactions: List<Transaction>) {
                         modifier = Modifier.align(Alignment.CenterHorizontally).padding(20.dp)
                     )
                 } else {
-                    // --- BATASI HANYA 3 ITEM ---
                     transactions.take(3).forEach { transaction ->
                         TransactionItem(transaction)
                     }
@@ -353,10 +344,9 @@ fun TransactionHistorySection(transactions: List<Transaction>) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tombol Lihat Selengkapnya
             Row(
                 modifier = Modifier.fillMaxWidth().clickable {
-                    // Nanti di sini navigasi ke halaman List Full
+                    // Navigate to full list screen
                 },
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
@@ -388,17 +378,16 @@ fun TransactionItem(transaction: Transaction) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Date and Amount
         Column {
             Text(
-                text = transaction.date.substringBefore("/"), // Just "JAN 16" style
+                text = transaction.date.substringBefore("/"),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = DeepPurple,
                 textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
             )
             Text(
-                text = transaction.date.substringAfter("/"), // Year "2025"
+                text = transaction.date.substringAfter("/"),
                 fontSize = 12.sp,
                 color = DeepPurple.copy(alpha = 0.7f)
             )
@@ -411,7 +400,6 @@ fun TransactionItem(transaction: Transaction) {
             )
         }
 
-        // Description and Status
         Column(horizontalAlignment = Alignment.End) {
             Icon(
                 imageVector = if (transaction.isApproved) Icons.Outlined.CheckCircle else Icons.Filled.Warning,
@@ -438,13 +426,12 @@ fun AsyncImageMock(modifier: Modifier = Modifier) {
             .border(1.dp, Color.White, CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        // Simple avatar visual
-        Text("🎓", fontSize = 28.sp)
+        Text("🧕", fontSize = 28.sp)
     }
 }
 
 @Preview(showBackground = true)
 @Composable
 fun DashboardMahasiswaPreview() {
-    DashboardMahasiswaScreen("preview_uid")
+    DashboardMahasiswaScreen("preview_uid", onNavigateToLogForm = {}, onNavigateToProfile = {})
 }

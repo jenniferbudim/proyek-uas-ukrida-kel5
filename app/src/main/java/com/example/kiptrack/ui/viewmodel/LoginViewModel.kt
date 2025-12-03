@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kiptrack.ui.event.LoginEvent
+import com.example.kiptrack.ui.model.UserRole
 import com.example.kiptrack.ui.state.LoginUiState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -13,19 +14,13 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
-// Navigation Events to signal the UI (Must be in a package accessible to LoginScreen)
-sealed class LoginNavigationEvent {
-    data class NavigateToMahasiswa(val uid: String) : LoginNavigationEvent()
-    data class NavigateToWali(val uid: String) : LoginNavigationEvent()
-    data class NavigateToAdmin(val uid: String) : LoginNavigationEvent()
-}
+data class LoginSuccessEvent(val role: UserRole, val uid: String)
 
 class LoginViewModel : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
 
-    // Channel for navigation events
-    private val _navigationEvent = Channel<LoginNavigationEvent>()
+    private val _navigationEvent = Channel<LoginSuccessEvent>()
     val navigationEvent = _navigationEvent.receiveAsFlow()
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -53,6 +48,10 @@ class LoginViewModel : ViewModel() {
             is LoginEvent.OnLoginClicked -> {
                 performLogin()
             }
+
+            is LoginEvent.OnLoginSuccess -> { 
+                // This event is handled by the UI, not the ViewModel
+            } 
         }
     }
 
@@ -93,19 +92,14 @@ class LoginViewModel : ViewModel() {
                     val roleDiDatabase = document.getString("role")
 
                     val roleDiUI = if (!uiState.isGeneralLogin) "admin"
-                    else if (uiState.selectedRole.name == "MAHASISWA") "mahasiswa"
+                    else if (uiState.selectedRole == UserRole.MAHASISWA) "mahasiswa"
                     else "wali"
 
                     if (roleDiDatabase == roleDiUI) {
-                        uiState = uiState.copy(isLoading = false)
-                        println("LOGIN SUKSES! User: $uid sebagai $roleDiDatabase")
+                        val userRole = UserRole.valueOf(roleDiDatabase.uppercase())
 
                         viewModelScope.launch {
-                            when (roleDiDatabase) {
-                                "mahasiswa" -> _navigationEvent.send(LoginNavigationEvent.NavigateToMahasiswa(uid))
-                                "wali" -> _navigationEvent.send(LoginNavigationEvent.NavigateToWali(uid))
-                                "admin" -> _navigationEvent.send(LoginNavigationEvent.NavigateToAdmin(uid))
-                            }
+                            _navigationEvent.send(LoginSuccessEvent(userRole, uid))
                         }
 
                     } else {

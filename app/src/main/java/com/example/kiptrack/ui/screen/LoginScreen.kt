@@ -10,10 +10,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -23,6 +27,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -30,38 +37,25 @@ import com.example.kiptrack.R
 import com.example.kiptrack.ui.event.LoginEvent
 import com.example.kiptrack.ui.model.UserRole
 import com.example.kiptrack.ui.state.LoginUiState
-import com.example.kiptrack.ui.viewmodel.LoginNavigationEvent // <-- ADDED THIS IMPORT
+import com.example.kiptrack.ui.theme.BackgroundGradientStart
+import com.example.kiptrack.ui.theme.DeepPurple
+import com.example.kiptrack.ui.theme.LightPurple
+import com.example.kiptrack.ui.theme.MediumPurple
+import com.example.kiptrack.ui.theme.TextLabelColor
 import com.example.kiptrack.ui.viewmodel.LoginViewModel
-
-// (Color definitions)
-val LightPurple = Color(0xFFF3E5F5)
-val MediumPurple = Color(0xFFCE93D8)
-val DeepPurple = Color(0xFF9575CD)
-val TextLabelColor = Color(0xFF7E57C2)
-val BackgroundGradientStart = Color(0xFFD1C4E9)
-val BackgroundGradientEnd = Color(0xFFEDE7F6)
 
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
     viewModel: LoginViewModel = viewModel(),
-    // Navigation Callbacks passed from MainActivity
-    onNavigateToMahasiswa: (String) -> Unit,
-    onNavigateToWali: (String) -> Unit,
-    onNavigateToAdmin: (String) -> Unit
+    onLoginSuccess: (UserRole, String) -> Unit
 ) {
     val state = viewModel.uiState
     val context = LocalContext.current
 
-    // --- CRITICAL: Listen for Navigation Events ---
     LaunchedEffect(key1 = true) {
-        // Now LoginNavigationEvent is correctly imported and recognized
         viewModel.navigationEvent.collect { event ->
-            when (event) {
-                is LoginNavigationEvent.NavigateToMahasiswa -> onNavigateToMahasiswa(event.uid)
-                is LoginNavigationEvent.NavigateToWali -> onNavigateToWali(event.uid)
-                is LoginNavigationEvent.NavigateToAdmin -> onNavigateToAdmin(event.uid)
-            }
+            onLoginSuccess(event.role, event.uid)
         }
     }
 
@@ -104,7 +98,7 @@ fun GeneralLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
             Surface(modifier = Modifier.fillMaxSize(), shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp), color = LightPurple) {
                 Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                        UserRole.values().forEach { role ->
+                        UserRole.values().filter { it != UserRole.ADMIN }.forEach { role ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
                                 .clickable { onEvent(LoginEvent.OnRoleSelected(role)) }
                                 .padding(8.dp)) {
@@ -182,6 +176,7 @@ fun LoginForm(
         CustomTextField(value = inputId, onValueChange = onIdChange, placeholder = idPlaceholder, enabled = !isLoading)
         Spacer(modifier = Modifier.height(20.dp))
         Text(text = "Password :", color = DeepPurple, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+
         CustomTextField(value = password, onValueChange = onPasswordChange, placeholder = "Masukkan Password Anda", isPassword = true, enabled = !isLoading)
     }
 }
@@ -194,6 +189,23 @@ fun CustomTextField(
     isPassword: Boolean = false,
     enabled: Boolean = true
 ) {
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+
+    val visualTransformation = if (isPassword && !passwordVisible) {
+        PasswordVisualTransformation()
+    } else {
+        VisualTransformation.None
+    }
+
+    val keyboardOptions = if (isPassword) {
+        KeyboardOptions(keyboardType = KeyboardType.Password)
+    } else {
+        KeyboardOptions.Default
+    }
+
+    val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+    val iconTint = DeepPurple.copy(alpha = 0.7f)
+
     TextField(
         value = value,
         onValueChange = onValueChange,
@@ -210,7 +222,22 @@ fun CustomTextField(
             unfocusedIndicatorColor = Color.Transparent
         ),
         shape = RoundedCornerShape(12.dp),
-        singleLine = true
+        singleLine = true,
+
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
+
+        trailingIcon = {
+            if (isPassword) {
+                IconButton(onClick = { passwordVisible = !passwordVisible }, enabled = enabled) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = if (passwordVisible) "Sembunyikan password" else "Tampilkan password",
+                        tint = iconTint
+                    )
+                }
+            }
+        }
     )
 }
 

@@ -16,3 +16,16 @@ val DeepPurple = Color(0xFF9575CD)
 val TextLabelColor = Color(0xFF7E57C2)
 val BackgroundGradientStart = Color(0xFFD1C4E9)
 val BackgroundGradientEnd = Color(0xFFEDE7F6)
+
+val RefHeaderPurple = Color(0xFFAB47BC) // Medium Purple for Header
+val RefBgLightPurple = Color(0xFFF3E5F5) // Background
+val RefDropdownBg = Color(0xFFE1BEE7) // The purple color for the dropdown box
+val RefTextPurple = Color(0xFF6A1B9A) // Darker purple for text
+val RefButtonBack = Color(0xFFE1BEE7)
+val RefButtonSave = Color(0xFFCE93D8)
+val RefAvatarBg = Color(0xFFD1C4E9)
+
+val RefInputBackground = Color(0xFFF3E5F5) // Light purple for fields
+val RefLabelColor = Color(0xFF9575CD)
+
+val RefAvatarIcon = Color(0xFF9540B4)
