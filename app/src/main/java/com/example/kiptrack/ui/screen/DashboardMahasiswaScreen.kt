@@ -72,11 +72,11 @@ fun DashboardMahasiswaScreen(uid: String) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState) // Allow entire screen to scroll
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Screen Title
+                // ... (Judul & Loading tetap sama) ...
                 Text(
                     text = "Dashboard Mahasiswa",
                     fontSize = 20.sp,
@@ -86,32 +86,24 @@ fun DashboardMahasiswaScreen(uid: String) {
                 )
 
                 if (state.isLoading) {
-                    CircularProgressIndicator(color = DeepPurple, modifier = Modifier.padding(top = 50.dp))
+                    CircularProgressIndicator(color = DeepPurple)
                 } else {
-                    // 1. Welcome Header Section
                     HeaderSection(state.userName)
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // 2. Saldo & Chart Section
-                    SaldoChartSection(state.currentSaldo, state.saldoHistory)
+                    // UPDATE: Kirim parameter tahun dan fungsi ganti tahun
+                    SaldoChartSection(
+                        currentSaldo = state.currentSaldo,
+                        graphData = state.graphData,
+                        selectedYear = state.selectedYear,
+                        onYearChange = viewModel::changeYear
+                    )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // 3. Transaction History Section
                     TransactionHistorySection(state.transactionHistory)
-
-                    Spacer(modifier = Modifier.height(30.dp)) // Bottom padding
-                }
-
-                // Error Message Display
-                state.errorMessage?.let {
-                    Text(
-                        text = it,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
+                    Spacer(modifier = Modifier.height(30.dp))
                 }
             }
         }
@@ -185,8 +177,14 @@ fun HeaderSection(userName: String) {
 }
 
 @Composable
-fun SaldoChartSection(currentSaldo: Long, history: List<Long>) {
-    val months = listOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT")
+fun SaldoChartSection(
+    currentSaldo: Long,
+    graphData: List<Long>,
+    selectedYear: Int,
+    onYearChange: (Int) -> Unit
+) {
+    // Label Sumbu X Statis (Jan - Des)
+    val months = listOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
 
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -195,7 +193,7 @@ fun SaldoChartSection(currentSaldo: Long, history: List<Long>) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            // Header: Title and Amount
+            // Header Saldo
             Text(
                 text = "Saldo Uang Saku",
                 fontSize = 14.sp,
@@ -211,43 +209,48 @@ fun SaldoChartSection(currentSaldo: Long, history: List<Long>) {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
-            // Chart Area with Nav Icons
+            // --- NAVIGASI TAHUN ---
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
             ) {
-                Icon(
-                    Icons.Filled.KeyboardArrowLeft,
-                    contentDescription = "Prev",
-                    tint = DeepPurple,
-                    modifier = Modifier.size(20.dp)
-                )
-
-                // Chart
-                Box(modifier = Modifier.weight(1f).height(120.dp).padding(horizontal = 8.dp)) {
-                    LineChart(data = history, modifier = Modifier.fillMaxSize())
+                IconButton(onClick = { onYearChange(-1) }) {
+                    Icon(Icons.Filled.KeyboardArrowLeft, contentDescription = "Prev Year", tint = DeepPurple)
                 }
-
-                Icon(
-                    Icons.Filled.KeyboardArrowRight,
-                    contentDescription = "Next",
-                    tint = DeepPurple,
-                    modifier = Modifier.size(20.dp)
+                Text(
+                    text = "$selectedYear",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = DeepPurple,
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
+                IconButton(onClick = { onYearChange(1) }) {
+                    Icon(Icons.Filled.KeyboardArrowRight, contentDescription = "Next Year", tint = DeepPurple)
+                }
             }
 
-            // X-Axis Labels
+            // --- AREA GRAFIK ---
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp) // Tinggi grafik diperbesar sedikit biar jelas
+                    .padding(horizontal = 8.dp)
+            ) {
+                LineChart(data = graphData, modifier = Modifier.fillMaxSize())
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
+
+            // --- LABEL BULAN (X-AXIS) ---
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Only show labels corresponding to data points
-                val labelsToShow = months.take(history.size)
-                labelsToShow.forEach { month ->
+                months.forEach { month ->
                     Text(
                         text = month,
-                        fontSize = 9.sp,
+                        fontSize = 9.sp, // Ukuran font kecil agar muat 12 bulan
                         color = Color.Gray,
                         fontWeight = FontWeight.Medium
                     )
@@ -257,37 +260,37 @@ fun SaldoChartSection(currentSaldo: Long, history: List<Long>) {
     }
 }
 
+// LineChart tetap sama, hanya menerima List<Long> values
 @Composable
 fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
-    if (data.size < 2) return
+    if (data.isEmpty()) return
 
-    val minValue = data.minOrNull() ?: 0L
-    val maxValue = data.maxOrNull() ?: 1L
-    val range = (maxValue - minValue).toFloat().coerceAtLeast(1f)
+    // Kita set max value dinamis. Jika semua data 0 (tahun kosong), set max jadi 1 biar ga error division by zero
+    val maxValue = data.maxOrNull()?.takeIf { it > 0 } ?: 1L
+    val minValue = 0L // Base grafik selalu 0
 
     Canvas(modifier = modifier) {
         val width = size.width
         val height = size.height
-        val stepX = width / (data.size - 1).toFloat().coerceAtLeast(1f)
+        // Jarak antar titik (dibagi 11 karena ada 12 titik, mulai dari index 0)
+        val stepX = width / 11f
 
         val path = Path()
-
         var previousPoint: Offset? = null
 
         data.forEachIndexed { index, value ->
-            val normalizedY = (value - minValue).toFloat() / range
-            // Add padding to top/bottom so points aren't cut off (0.1f to 0.9f range)
+            // Normalisasi nilai Y (0 ada di bawah, Max ada di atas)
+            val normalizedY = value.toFloat() / maxValue.toFloat()
+
+            // Koordinat Y: (height * 0.1) padding bawah, (height * 0.8) area gambar
             val y = height - (normalizedY * height * 0.8f + height * 0.1f)
             val x = index * stepX
 
             val currentPoint = Offset(x, y)
 
-            if (index == 0) {
-                path.moveTo(x, y)
-            } else {
-                path.lineTo(x, y)
-            }
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
 
+            // Gambar Garis Penghubung
             if (previousPoint != null) {
                 drawLine(
                     color = DeepPurple,
@@ -298,22 +301,15 @@ fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
                 )
             }
 
-            // Draw Dots
-            drawCircle(
-                color = DeepPurple,
-                radius = 3.dp.toPx(),
-                center = currentPoint
-            )
-
-            // Draw white center for dots to match style
-            drawCircle(
-                color = Color.White,
-                radius = 1.5.dp.toPx(),
-                center = currentPoint
-            )
+            // Gambar Titik (Dot)
+            drawCircle(color = DeepPurple, radius = 3.dp.toPx(), center = currentPoint)
+            drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = currentPoint) // Titik tengah putih
 
             previousPoint = currentPoint
         }
+
+        // (Opsional) Gambar Stroke Grafik
+        // drawPath(path, color = DeepPurple, style = Stroke(width = 2.dp.toPx()))
     }
 }
 
@@ -332,25 +328,36 @@ fun TransactionHistorySection(transactions: List<Transaction>) {
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = DeepPurple,
-                // FIX: Replaced combined horizontal/bottom padding with explicit start/end/bottom
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
             )
 
-            // Items List (Using Column + forEach instead of LazyColumn for simplicity inside ScrollView)
+            // Items List
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
-                transactions.take(3).forEach { transaction ->
-                    TransactionItem(transaction)
+                if (transactions.isEmpty()) {
+                    Text(
+                        text = "Belum ada transaksi",
+                        fontSize = 12.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(20.dp)
+                    )
+                } else {
+                    // --- BATASI HANYA 3 ITEM ---
+                    transactions.take(3).forEach { transaction ->
+                        TransactionItem(transaction)
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Footer Link
+            // Tombol Lihat Selengkapnya
             Row(
-                modifier = Modifier.fillMaxWidth().clickable { },
+                modifier = Modifier.fillMaxWidth().clickable {
+                    // Nanti di sini navigasi ke halaman List Full
+                },
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
