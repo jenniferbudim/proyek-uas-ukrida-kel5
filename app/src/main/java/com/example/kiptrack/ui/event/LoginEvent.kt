@@ -1,6 +1,6 @@
 package com.example.kiptrack.ui.event
 
-import com.example.kiptrack.ui.screen.UserRole
+import com.example.kiptrack.ui.model.UserRole
 
 sealed interface LoginEvent {
     data class OnIdChange(val value: String) : com.example.kiptrack.ui.event.LoginEvent

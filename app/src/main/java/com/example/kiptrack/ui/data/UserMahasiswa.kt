@@ -1,11 +1,16 @@
 package com.example.kiptrack.ui.data
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-
-@Entity(tableName = "tbl_mahasiswa")
 data class UserMahasiswa(
-    @PrimaryKey val nim: String,
-    val nama: String,
-    val password: String
-)
+    val uid: String = "", // Firestore Document ID (same as Auth UID)
+    val nim: String = "", // Student ID
+    val nama: String = "", // Student Name (e.g., "Blessy")
+    val password: String = "" // Stored password (if needed, but usually avoided in real apps)
+) {
+    // Helper constructor for easy use
+    constructor(map: Map<String, Any>) : this(
+        uid = map["uid"] as? String ?: "",
+        nim = map["nim"] as? String ?: "",
+        nama = map["nama"] as? String ?: "",
+        password = map["password"] as? String ?: ""
+    )
+}

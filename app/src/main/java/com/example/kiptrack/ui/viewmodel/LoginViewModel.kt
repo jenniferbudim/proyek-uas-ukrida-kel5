@@ -4,16 +4,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.kiptrack.ui.event.LoginEvent
 import com.example.kiptrack.ui.state.LoginUiState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.launch
+
+// Navigation Events to signal the UI (Must be in a package accessible to LoginScreen)
+sealed class LoginNavigationEvent {
+    data class NavigateToMahasiswa(val uid: String) : LoginNavigationEvent()
+    data class NavigateToWali(val uid: String) : LoginNavigationEvent()
+    data class NavigateToAdmin(val uid: String) : LoginNavigationEvent()
+}
 
 class LoginViewModel : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
 
-    // Inisialisasi Firebase Auth & Firestore
+    // Channel for navigation events
+    private val _navigationEvent = Channel<LoginNavigationEvent>()
+    val navigationEvent = _navigationEvent.receiveAsFlow()
+
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 
@@ -46,7 +60,6 @@ class LoginViewModel : ViewModel() {
         val currentId = uiState.inputId.trim()
         val currentPassword = uiState.password.trim()
 
-        // 1. Validasi Input Kosong
         if (currentId.isBlank() || currentPassword.isBlank()) {
             uiState = uiState.copy(errorMessage = "Form tidak boleh kosong")
             return
@@ -54,14 +67,10 @@ class LoginViewModel : ViewModel() {
 
         uiState = uiState.copy(isLoading = true, errorMessage = null)
 
-        // 2. Manipulasi Email (Strategy @kiptrack.com)
-        // Kita tambahkan domain palsu agar diterima Firebase Auth
         val emailFormat = "$currentId@kiptrack.com"
 
-        // 3. Eksekusi Login ke Firebase
         auth.signInWithEmailAndPassword(emailFormat, currentPassword)
             .addOnSuccessListener { authResult ->
-                // Login Berhasil -> Cek apakah Role di database sesuai dengan yang dipilih di UI
                 val uid = authResult.user?.uid
                 if (uid != null) {
                     checkUserRole(uid)
@@ -70,7 +79,6 @@ class LoginViewModel : ViewModel() {
                 }
             }
             .addOnFailureListener { exception ->
-                // Login Gagal (Password salah / User tidak ditemukan)
                 uiState = uiState.copy(
                     isLoading = false,
                     errorMessage = "Login Gagal: ${exception.localizedMessage ?: "Cek ID dan Password"}"
@@ -78,29 +86,30 @@ class LoginViewModel : ViewModel() {
             }
     }
 
-    // Fungsi untuk memverifikasi apakah user yang login punya role yang benar
     private fun checkUserRole(uid: String) {
-        // Kita ambil data user dari collection 'users'
         db.collection("users").document(uid).get()
             .addOnSuccessListener { document ->
                 if (document.exists()) {
-                    val roleDiDatabase = document.getString("role") // "mahasiswa", "wali", atau "admin"
+                    val roleDiDatabase = document.getString("role")
 
-                    // Logika Pengecekan Role UI vs Database
                     val roleDiUI = if (!uiState.isGeneralLogin) "admin"
                     else if (uiState.selectedRole.name == "MAHASISWA") "mahasiswa"
                     else "wali"
 
                     if (roleDiDatabase == roleDiUI) {
-                        // SUKSES SEPENUHNYA
                         uiState = uiState.copy(isLoading = false)
                         println("LOGIN SUKSES! User: $uid sebagai $roleDiDatabase")
 
-                        // TODO: Di sini nanti kita akan trigger navigasi ke Dashboard (Task selanjutnya)
+                        viewModelScope.launch {
+                            when (roleDiDatabase) {
+                                "mahasiswa" -> _navigationEvent.send(LoginNavigationEvent.NavigateToMahasiswa(uid))
+                                "wali" -> _navigationEvent.send(LoginNavigationEvent.NavigateToWali(uid))
+                                "admin" -> _navigationEvent.send(LoginNavigationEvent.NavigateToAdmin(uid))
+                            }
+                        }
 
                     } else {
-                        // User ada, tapi salah kamar (Misal Admin coba login di tab Mahasiswa)
-                        auth.signOut() // Logout paksa
+                        auth.signOut()
                         uiState = uiState.copy(
                             isLoading = false,
                             errorMessage = "Akun tidak terdaftar sebagai ${roleDiUI.uppercase()}"
