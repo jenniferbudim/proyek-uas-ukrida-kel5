@@ -55,6 +55,7 @@ dependencies {
     // Room
     implementation("androidx.room:room-runtime:2.6.1")
     implementation(libs.firebase.firestore)
+    implementation(libs.androidx.compose.ui.geometry)
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 
@@ -81,6 +82,11 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+
+    //UI
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics") // Crucial for Canvas drawing components
+    implementation("androidx.compose.ui:ui-tooling-preview")
 
     //Icon
     implementation("androidx.compose.material3:material3:1.3.1")
