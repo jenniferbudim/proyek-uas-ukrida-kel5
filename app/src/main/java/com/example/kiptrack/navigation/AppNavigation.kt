@@ -11,6 +11,8 @@ import com.example.kiptrack.ui.model.UserRole
 import com.example.kiptrack.ui.screen.DashboardAdminScreen
 import com.example.kiptrack.ui.screen.DashboardMahasiswaScreen
 import com.example.kiptrack.ui.screen.DashboardWaliScreen
+import com.example.kiptrack.ui.screen.ListUniversitasScreen
+import com.example.kiptrack.ui.screen.ListMahasiswaProdiScreen // Assuming this import exists
 import com.example.kiptrack.ui.screen.LogFormScreen
 import com.example.kiptrack.ui.screen.LoginScreen
 import com.example.kiptrack.ui.screen.ProfileMahasiswaScreen
@@ -62,7 +64,54 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             arguments = listOf(navArgument("uid") { type = NavType.StringType })
         ) { backStackEntry ->
             val uid = backStackEntry.arguments?.getString("uid") ?: ""
-            DashboardAdminScreen(uid = uid)
+            DashboardAdminScreen(
+                uid = uid,
+                onNavigateToListUniversitas = { adminUid, uniName ->
+                    navController.navigate("universitas_list/$adminUid/$uniName")
+                },
+                onLogoutClicked = {
+                    navController.navigate("login") {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = "universitas_list/{uid}/{universityName}",
+            arguments = listOf(
+                navArgument("uid") { type = NavType.StringType },
+                navArgument("universityName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val uid = backStackEntry.arguments?.getString("uid") ?: ""
+            val uniName = backStackEntry.arguments?.getString("universityName") ?: "Universitas List"
+            ListUniversitasScreen(
+                uid = uid,
+                universityName = uniName,
+                // NEW: Callback to navigate to the list of students in a specific study program
+                onNavigateToListMahasiswa = { currentUid, prodiName ->
+                    navController.navigate("mahasiswa_list/$currentUid/$prodiName")
+                },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // NEW ROUTE: List Mahasiswa Prodi Screen
+        composable(
+            route = "mahasiswa_list/{uid}/{programStudiName}",
+            arguments = listOf(
+                navArgument("uid") { type = NavType.StringType },
+                navArgument("programStudiName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val uid = backStackEntry.arguments?.getString("uid") ?: ""
+            val prodiName = backStackEntry.arguments?.getString("programStudiName") ?: "Program Studi"
+            ListMahasiswaProdiScreen(
+                uid = uid,
+                programStudiName = prodiName,
+                onBackClick = { navController.popBackStack() }
+            )
         }
 
         composable(

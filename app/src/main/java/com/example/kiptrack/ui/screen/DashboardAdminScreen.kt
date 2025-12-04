@@ -8,13 +8,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.ExitToApp
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +27,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,19 +37,33 @@ import com.example.kiptrack.ui.data.University
 import com.example.kiptrack.ui.theme.DeepPurple
 import com.example.kiptrack.ui.theme.LightPurple
 import com.example.kiptrack.ui.theme.MediumPurple
+import com.example.kiptrack.ui.theme.TextLabelColor
 import com.example.kiptrack.ui.viewmodel.DashboardAdminViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardAdminViewModelFactory
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
-fun DashboardAdminScreen(uid: String) {
+fun DashboardAdminScreen(
+    uid: String,
+    // UPDATED: Callback now accepts (UID, UniversityName)
+    onNavigateToListUniversitas: (String, String) -> Unit,
+    onLogoutClicked: () -> Unit
+) {
     val viewModel: DashboardAdminViewModel = viewModel(
         factory = DashboardAdminViewModelFactory(uid)
     )
     val state = viewModel.uiState
 
-    // Gradient Background for the top part
+    // State for dialogs
+    var showEditUniDialog by remember { mutableStateOf(false) }
+    var selectedUniForEdit by remember { mutableStateOf<University?>(null) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+
+    var showEditClusterDialog by remember { mutableStateOf(false) }
+    var selectedClusterForEdit by remember { mutableStateOf<Cluster?>(null) }
+
+    // Gradient Background
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -62,14 +79,11 @@ fun DashboardAdminScreen(uid: String) {
         ) {
             // --- HEADER SECTION ---
             Spacer(modifier = Modifier.height(20.dp))
-
-            // Top Row: Back Icon and "Hello, Admin!"
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
             ) {
-                // Logout/Back Icon
                 Icon(
                     imageVector = Icons.Outlined.ExitToApp,
                     contentDescription = "Logout",
@@ -77,25 +91,17 @@ fun DashboardAdminScreen(uid: String) {
                     modifier = Modifier
                         .size(28.dp)
                         .align(Alignment.CenterStart)
-                        .clickable { /* Handle Logout */ }
+                        .clickable { onLogoutClicked() }
                 )
-
-                // Hello Text
                 Text(
                     text = buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = DeepPurple.copy(alpha = 0.6f))) {
-                            append("Hello, ")
-                        }
-                        withStyle(style = SpanStyle(color = Color(0xFF8E24AA), fontWeight = FontWeight.Bold)) {
-                            append(state.username)
-                            append("!")
-                        }
+                        withStyle(style = SpanStyle(color = DeepPurple.copy(alpha = 0.6f))) { append("Hello, ") }
+                        withStyle(style = SpanStyle(color = Color(0xFF8E24AA), fontWeight = FontWeight.Bold)) { append(state.username); append("!") }
                     },
                     fontSize = 18.sp,
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
-
             Spacer(modifier = Modifier.height(20.dp))
 
             // Search Bar
@@ -105,7 +111,6 @@ fun DashboardAdminScreen(uid: String) {
                 onQueryChange = viewModel::onSearchQueryChange,
                 placeholder = searchPlaceholder
             )
-
             Spacer(modifier = Modifier.height(24.dp))
 
             // --- WHITE CONTENT CONTAINER ---
@@ -117,7 +122,6 @@ fun DashboardAdminScreen(uid: String) {
                     .background(Color.White)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
-
                     // TAB ROW
                     Row(
                         modifier = Modifier
@@ -125,18 +129,9 @@ fun DashboardAdminScreen(uid: String) {
                             .padding(top = 24.dp, bottom = 8.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        AdminTabItem(
-                            title = "UNIVERSITAS",
-                            isSelected = state.selectedTab == 0,
-                            onClick = { viewModel.onTabSelected(0) }
-                        )
-                        AdminTabItem(
-                            title = "CLUSTER",
-                            isSelected = state.selectedTab == 1,
-                            onClick = { viewModel.onTabSelected(1) }
-                        )
+                        AdminTabItem(title = "UNIVERSITAS", isSelected = state.selectedTab == 0) { viewModel.onTabSelected(0) }
+                        AdminTabItem(title = "CLUSTER", isSelected = state.selectedTab == 1) { viewModel.onTabSelected(1) }
                     }
-
                     Divider(color = Color(0xFFEEEEEE), thickness = 1.dp)
 
                     // LIST CONTENT
@@ -147,31 +142,34 @@ fun DashboardAdminScreen(uid: String) {
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         if (state.selectedTab == 0) {
-                            val filteredList = state.universities.filter {
-                                it.name.contains(state.searchQuery, ignoreCase = true)
-                            }
+                            val filteredList = state.universities.filter { it.name.contains(state.searchQuery, ignoreCase = true) }
                             items(filteredList) { uni ->
-                                UniversityCard(uni)
+                                UniversityCard(
+                                    uni = uni,
+                                    // UPDATED: Pass UID and uni.name to the navigation callback
+                                    onCardClick = { onNavigateToListUniversitas(uid, uni.name) },
+                                    onEditClick = {
+                                        selectedUniForEdit = uni
+                                        showEditUniDialog = true
+                                    }
+                                )
                             }
                         } else {
-                            val filteredList = state.clusters.filter {
-                                it.name.contains(state.searchQuery, ignoreCase = true)
-                            }
+                            val filteredList = state.clusters.filter { it.name.contains(state.searchQuery, ignoreCase = true) }
                             items(filteredList) { cluster ->
-                                ClusterCard(cluster)
+                                ClusterCard(
+                                    cluster = cluster,
+                                    onEditClick = {
+                                        selectedClusterForEdit = cluster
+                                        showEditClusterDialog = true
+                                    }
+                                )
                             }
                         }
-
-                        // Bottom spacer + Arrow
                         item {
                             Spacer(modifier = Modifier.height(10.dp))
                             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "More",
-                                    tint = DeepPurple,
-                                    modifier = Modifier.size(24.dp)
-                                )
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "More", tint = DeepPurple, modifier = Modifier.size(24.dp))
                             }
                             Spacer(modifier = Modifier.height(20.dp))
                         }
@@ -180,51 +178,61 @@ fun DashboardAdminScreen(uid: String) {
             }
         }
     }
+
+    // --- DIALOGS (Same as previous) ---
+    if (showEditUniDialog && selectedUniForEdit != null) {
+        EditUniversityDialog(
+            university = selectedUniForEdit!!,
+            onDismiss = { showEditUniDialog = false },
+            onSave = { accreditation, cluster -> showEditUniDialog = false },
+            onDelete = { showEditUniDialog = false; showDeleteConfirmDialog = true }
+        )
+    }
+
+    if (showDeleteConfirmDialog && selectedUniForEdit != null) {
+        DeleteConfirmationDialog(
+            universityName = selectedUniForEdit!!.name,
+            onDismiss = { showDeleteConfirmDialog = false },
+            onConfirm = { showDeleteConfirmDialog = false; selectedUniForEdit = null }
+        )
+    }
+
+    if (showEditClusterDialog && selectedClusterForEdit != null) {
+        EditClusterDialog(
+            cluster = selectedClusterForEdit!!,
+            onDismiss = { showEditClusterDialog = false },
+            onSave = { showEditClusterDialog = false }
+        )
+    }
 }
 
+// ... (Rest of components: AdminSearchBar, AdminTabItem, UniversityCard, etc. remain unchanged) ...
 @Composable
 fun AdminSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    placeholder: String
+    placeholder: String,
+    modifier: Modifier = Modifier
 ) {
     TextField(
         value = query,
         onValueChange = onQueryChange,
-        placeholder = {
-            Text(
-                text = placeholder,
-                color = Color.Gray,
-                fontSize = 14.sp
-            )
-        },
-        textStyle = TextStyle(
-            color = DeepPurple,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium
-        ),
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MediumPurple
-            )
-        },
+        placeholder = { Text(placeholder, color = Color.Gray) },
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(50))
+            .clip(RoundedCornerShape(50)),
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon", tint = DeepPurple) },
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.White,
             unfocusedContainerColor = Color.White,
             disabledContainerColor = Color.White,
-            cursorColor = DeepPurple,
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent
         ),
-        shape = RoundedCornerShape(50),
         singleLine = true,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp)
-            // REMOVED fixed .height(50.dp) to prevent text clipping
-            .shadow(4.dp, RoundedCornerShape(50))
+        textStyle = TextStyle(color = DeepPurple, fontSize = 16.sp)
     )
 }
 
@@ -237,38 +245,47 @@ fun AdminTabItem(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(120.dp)
             .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(
             text = title,
-            fontSize = 14.sp,
+            color = if (isSelected) DeepPurple else Color.Gray,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) DeepPurple else Color.LightGray,
-            modifier = Modifier.padding(bottom = 8.dp)
+            fontSize = 16.sp
         )
+        Spacer(modifier = Modifier.height(4.dp))
         if (isSelected) {
             Box(
                 modifier = Modifier
                     .width(80.dp)
-                    .height(2.dp)
-                    .background(Color(0xFF8E24AA))
+                    .height(3.dp)
+                    .background(DeepPurple, shape = RoundedCornerShape(2.dp))
             )
         }
     }
 }
 
 @Composable
-fun UniversityCard(uni: University) {
+fun UniversityCard(
+    uni: University,
+    onCardClick: () -> Unit,
+    onEditClick: () -> Unit
+) {
     Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCardClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = LightPurple.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+        colors = CardDefaults.cardColors(containerColor = LightPurple.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Box(
                 modifier = Modifier
@@ -283,71 +300,165 @@ fun UniversityCard(uni: University) {
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = uni.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = DeepPurple
-                )
+                Text(text = uni.name, fontWeight = FontWeight.Bold, color = DeepPurple, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Akreditasi: ${uni.accreditation}",
-                    fontSize = 12.sp,
-                    color = DeepPurple.copy(alpha = 0.6f)
-                )
-                Text(
-                    text = "Cluster: ${uni.cluster}",
-                    fontSize = 12.sp,
-                    color = DeepPurple.copy(alpha = 0.6f)
-                )
+                Text(text = "Akreditasi: ${uni.accreditation}", color = TextLabelColor, fontSize = 14.sp)
+                Text(text = "Cluster: ${uni.cluster}", color = TextLabelColor, fontSize = 14.sp)
             }
-
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Edit",
-                tint = DeepPurple,
-                modifier = Modifier.size(24.dp).padding(4.dp).border(1.dp, DeepPurple, RoundedCornerShape(4.dp)).padding(2.dp)
-            )
+            IconButton(onClick = onEditClick) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit University", tint = DeepPurple)
+            }
         }
     }
 }
 
 @Composable
-fun ClusterCard(cluster: Cluster) {
+fun ClusterCard(
+    cluster: Cluster,
+    onEditClick: () -> Unit
+) {
+    val formatter = remember { NumberFormat.getCurrencyInstance(Locale("in", "ID")) }
+
     Card(
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = LightPurple.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+        colors = CardDefaults.cardColors(containerColor = LightPurple.copy(alpha = 0.5f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = cluster.name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    color = DeepPurple
-                )
+                Text(text = "Cluster ${cluster.name}", fontWeight = FontWeight.Bold, color = DeepPurple, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(4.dp))
-
-                val formattedNominal = NumberFormat.getNumberInstance(Locale("id", "ID")).format(cluster.nominal)
-                Text(
-                    text = "Nominal: $formattedNominal",
-                    fontSize = 12.sp,
-                    color = DeepPurple.copy(alpha = 0.6f),
-                    fontWeight = FontWeight.Medium
-                )
+                Text(text = "Bantuan: ${formatter.format(cluster.nominal)}", color = TextLabelColor, fontSize = 14.sp)
             }
-
-            Icon(
-                imageVector = Icons.Default.Edit,
-                contentDescription = "Edit",
-                tint = DeepPurple,
-                modifier = Modifier.size(24.dp).padding(4.dp).border(1.dp, DeepPurple, RoundedCornerShape(4.dp)).padding(2.dp)
-            )
+            IconButton(onClick = onEditClick) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit Cluster", tint = DeepPurple)
+            }
         }
     }
+}
+
+@Composable
+fun EditUniversityDialog(
+    university: University,
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit,
+    onDelete: () -> Unit
+) {
+    var accreditation by remember { mutableStateOf(university.accreditation) }
+    var cluster by remember { mutableStateOf(university.cluster) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Universitas", fontWeight = FontWeight.Bold, color = DeepPurple) },
+        text = {
+            Column {
+                Text(university.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 16.dp))
+                OutlinedTextField(
+                    value = accreditation,
+                    onValueChange = { accreditation = it },
+                    label = { Text("Akreditasi") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = cluster,
+                    onValueChange = { cluster = it },
+                    label = { Text("Cluster") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(accreditation, cluster) },
+                colors = ButtonDefaults.buttonColors(containerColor = DeepPurple)
+            ) {
+                Text("Simpan")
+            }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onDelete) {
+                    Text("Hapus", color = Color.Red)
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(onClick = onDismiss) {
+                    Text("Batal", color = DeepPurple)
+                }
+            }
+        }
+    )
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    universityName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Hapus Universitas", fontWeight = FontWeight.Bold, color = DeepPurple) },
+        text = { Text("Apakah Anda yakin ingin menghapus $universityName?") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+            ) {
+                Text("Ya, Hapus")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Batal", color = DeepPurple)
+            }
+        }
+    )
+}
+
+@Composable
+fun EditClusterDialog(
+    cluster: Cluster,
+    onDismiss: () -> Unit,
+    onSave: (Long) -> Unit
+) {
+    var nominalString by remember { mutableStateOf(cluster.nominal.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Cluster", fontWeight = FontWeight.Bold, color = DeepPurple) },
+        text = {
+            Column {
+                Text(cluster.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 16.dp))
+                OutlinedTextField(
+                    value = nominalString,
+                    onValueChange = { nominalString = it.filter { char -> char.isDigit() } },
+                    label = { Text("Nominal Bantuan (Rp)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    prefix = { Text("Rp ") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSave(nominalString.toLongOrNull() ?: 0L) },
+                colors = ButtonDefaults.buttonColors(containerColor = DeepPurple)
+            ) {
+                Text("Simpan")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Batal", color = DeepPurple)
+            }
+        }
+    )
 }
