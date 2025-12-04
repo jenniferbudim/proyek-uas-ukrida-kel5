@@ -1,7 +1,6 @@
 package com.example.kiptrack.ui.screen
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,8 +25,9 @@ import com.example.kiptrack.ui.theme.MediumPurple
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListMahasiswaProdiScreen(
-    uid: String, // Carried from previous screen
+    uid: String,
     programStudiName: String,
+    onNavigateToDetailMahasiswa: (String, String) -> Unit, // NEW: Callback to navigate to student detail
     onBackClick: () -> Unit
 ) {
     Scaffold(
@@ -73,7 +73,12 @@ fun ListMahasiswaProdiScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(mockStudents) { studentName ->
-                    MahasiswaListItem(name = studentName, prodi = programStudiName)
+                    MahasiswaListItem(
+                        name = studentName,
+                        prodi = programStudiName,
+                        // Trigger navigation, passing admin UID and student name
+                        onClick = { onNavigateToDetailMahasiswa(uid, studentName) }
+                    )
                 }
             }
         }
@@ -81,14 +86,14 @@ fun ListMahasiswaProdiScreen(
 }
 
 @Composable
-fun MahasiswaListItem(name: String, prodi: String) {
+fun MahasiswaListItem(name: String, prodi: String, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = LightPurple.copy(alpha = 0.3f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* Handle click to Mahasiswa detail */ }
+            .clickable { onClick() } // Use the new onClick handler
     ) {
         Row(
             modifier = Modifier
@@ -101,8 +106,7 @@ fun MahasiswaListItem(name: String, prodi: String) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(MediumPurple)
-                    .border(1.dp, DeepPurple, CircleShape),
+                    .background(MediumPurple),
                 contentAlignment = Alignment.Center
             ) {
                 // Display the first letter of the name

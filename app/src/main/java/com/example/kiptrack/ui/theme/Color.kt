@@ -29,3 +29,14 @@ val RefInputBackground = Color(0xFFF3E5F5) // Light purple for fields
 val RefLabelColor = Color(0xFF9575CD)
 
 val RefAvatarIcon = Color(0xFF9540B4)
+
+val PurplePrimary = Color(0xFF9C27B0)
+val PurpleDark = Color(0xFF7B1FA2)
+val PurpleLightBg = Color(0xFFF3E5F5) // Very light purple background
+val PurpleHeaderStart = Color(0xFFE1BEE7)
+val PurpleHeaderEnd = Color(0xFFCE93D8)
+val TextPurple = Color(0xFF4A148C)
+val CardBg = Color.White
+val PieGreen = Color(0xFF009688)
+val PieOrange = Color(0xFFE64A19)
+val PieRed = Color(0xFFD32F2F)
