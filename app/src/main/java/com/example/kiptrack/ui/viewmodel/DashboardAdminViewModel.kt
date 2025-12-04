@@ -9,18 +9,17 @@ import com.example.kiptrack.ui.data.Cluster
 import com.example.kiptrack.ui.data.University
 import com.example.kiptrack.ui.data.UserAdmin
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import java.util.UUID
 
-// State for the Admin Dashboard UI
 data class DashboardAdminUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val username: String = "Admin",
     val uid: String = "",
     val searchQuery: String = "",
-    val selectedTab: Int = 0, // 0 = Universitas, 1 = Cluster
+    val selectedTab: Int = 0,
     val universities: List<University> = emptyList(),
     val clusters: List<Cluster> = emptyList()
 )
@@ -30,13 +29,13 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
         private set
 
     private val db = FirebaseFirestore.getInstance()
+    private var univListener: ListenerRegistration? = null
+    private var clusterListener: ListenerRegistration? = null
 
     init {
         if (uid.isNotBlank()) {
             fetchAdminData()
-            loadMockData()
-        } else {
-            uiState = uiState.copy(isLoading = false, errorMessage = "UID Invalid")
+            setupRealtimeListeners()
         }
     }
 
@@ -45,37 +44,113 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
             val userDoc = db.collection("users").document(uid).get().await()
             if (userDoc.exists()) {
                 val adminData = UserAdmin(userDoc.data ?: emptyMap())
-                uiState = uiState.copy(
-                    username = adminData.username.ifBlank { "Admin" },
-                    isLoading = false
-                )
-            } else {
-                uiState = uiState.copy(isLoading = false)
+                uiState = uiState.copy(username = adminData.username.ifBlank { "Admin" })
             }
         } catch (e: Exception) {
-            uiState = uiState.copy(isLoading = false, errorMessage = "Error: ${e.message}")
+            // Ignore error fetching admin name
         }
     }
 
-    private fun loadMockData() {
-        val mockUniversities = listOf(
-            University(UUID.randomUUID().toString(), "Universitas Kristen Krida Wacana", "A", "1"),
-            University(UUID.randomUUID().toString(), "Universitas Tarumanagara", "A", "1"),
-            University(UUID.randomUUID().toString(), "Universitas Trisakti", "B", "2"),
-            University(UUID.randomUUID().toString(), "Universitas Bina Nusantara", "Unggul", "1"),
-        )
+    private fun setupRealtimeListeners() {
+        uiState = uiState.copy(isLoading = true)
 
-        val mockClusters = listOf(
-            Cluster(UUID.randomUUID().toString(), "Cluster 1 Non-Kedokteran", 8000000L),
-            Cluster(UUID.randomUUID().toString(), "Cluster 1 Kedokteran", 12000000L),
-            Cluster(UUID.randomUUID().toString(), "Cluster 2 Non-Kedokteran", 6000000L),
-            Cluster(UUID.randomUUID().toString(), "Cluster 2 Kedokteran", 8000000L),
-        )
+        // 1. Listen Universitas
+        univListener = db.collection("universitas").addSnapshotListener { snapshot, e ->
+            if (snapshot != null) {
+                val uniList = snapshot.documents.map { doc ->
+                    // PERBAIKAN UTAMA DI SINI:
+                    // Baca field 'wilayah_klaster' dengan aman (String atau Number)
+                    val rawCluster = doc.get("wilayah_klaster")
+                    val clusterValue = rawCluster?.toString() ?: "0"
 
-        uiState = uiState.copy(
-            universities = mockUniversities,
-            clusters = mockClusters
-        )
+                    University(
+                        id = doc.id,
+                        name = doc.getString("nama_kampus") ?: "",
+                        accreditation = doc.getString("akreditasi") ?: "-",
+                        cluster = clusterValue
+                    )
+                }
+                uiState = uiState.copy(universities = uniList, isLoading = false)
+            }
+        }
+
+        // 2. Listen Clusters
+        clusterListener = db.collection("konfigurasi").addSnapshotListener { snapshot, e ->
+            if (snapshot != null) {
+                val clusterList = mutableListOf<Cluster>()
+
+                // Helper function untuk ambil angka dengan aman
+                fun getSafeLong(doc: com.google.firebase.firestore.DocumentSnapshot, field: String): Long {
+                    return try {
+                        doc.getLong(field) ?: doc.getString(field)?.toLongOrNull() ?: 0L
+                    } catch (e: Exception) { 0L }
+                }
+
+                // Ambil Non-Kedokteran
+                val docNonKed = snapshot.documents.find { it.id == "aturan_biaya_hidup_non-kedokteran" }
+                docNonKed?.let { doc ->
+                    for (i in 1..5) {
+                        val nominal = getSafeLong(doc, "klaster_$i")
+                        clusterList.add(Cluster("non_ked_$i", "Cluster $i Non-Kedokteran", nominal))
+                    }
+                }
+
+                // Ambil Kedokteran
+                val docKed = snapshot.documents.find { it.id == "aturan_biaya_hidup_kedokteran" }
+                docKed?.let { doc ->
+                    for (i in 1..5) {
+                        val nominal = getSafeLong(doc, "klaster_$i")
+                        clusterList.add(Cluster("ked_$i", "Cluster $i Kedokteran", nominal))
+                    }
+                }
+
+                uiState = uiState.copy(clusters = clusterList)
+            }
+        }
+    }
+
+    // --- FITUR UPDATE UNIVERSITAS ---
+    fun updateUniversity(uniId: String, newAccreditation: String, newCluster: String) = viewModelScope.launch {
+        try {
+            // Saat update, kita paksa simpan sebagai Number (Long) agar konsisten
+            val clusterNumber = newCluster.toLongOrNull() ?: 0L
+
+            db.collection("universitas").document(uniId)
+                .update(
+                    mapOf(
+                        "akreditasi" to newAccreditation,
+                        "wilayah_klaster" to clusterNumber // Simpan sebagai angka
+                    )
+                ).await()
+        } catch (e: Exception) {
+            println("Update Univ Error: ${e.message}")
+        }
+    }
+
+    // --- FITUR HAPUS UNIVERSITAS ---
+    fun deleteUniversity(uniId: String) = viewModelScope.launch {
+        try {
+            db.collection("universitas").document(uniId).delete().await()
+        } catch (e: Exception) {
+            println("Delete Univ Error: ${e.message}")
+        }
+    }
+
+    // --- FITUR UPDATE CLUSTER (NOMINAL) ---
+    fun updateCluster(clusterId: String, newNominal: Long) = viewModelScope.launch {
+        val isKedokteran = clusterId.startsWith("ked_")
+        val clusterNum = clusterId.last().toString()
+
+        val docId = if (isKedokteran) "aturan_biaya_hidup_kedokteran" else "aturan_biaya_hidup_non-kedokteran"
+        val fieldName = "klaster_$clusterNum"
+
+        try {
+            db.collection("konfigurasi").document(docId)
+                .update(fieldName, newNominal)
+                .await()
+        } catch (e: Exception) {
+            println("Update Cluster Error: ${e.message}")
+        }
     }
 
     fun onSearchQueryChange(query: String) {
@@ -84,5 +159,11 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
 
     fun onTabSelected(index: Int) {
         uiState = uiState.copy(selectedTab = index)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        univListener?.remove()
+        clusterListener?.remove()
     }
 }

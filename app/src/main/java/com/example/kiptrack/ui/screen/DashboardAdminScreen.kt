@@ -37,7 +37,6 @@ import com.example.kiptrack.ui.data.University
 import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.theme.Purple50
 import com.example.kiptrack.ui.theme.Purple200
-import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.viewmodel.DashboardAdminViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardAdminViewModelFactory
 import java.text.NumberFormat
@@ -46,7 +45,6 @@ import java.util.Locale
 @Composable
 fun DashboardAdminScreen(
     uid: String,
-    // UPDATED: Callback now accepts (UID, UniversityName)
     onNavigateToListUniversitas: (String, String) -> Unit,
     onLogoutClicked: () -> Unit
 ) {
@@ -146,8 +144,8 @@ fun DashboardAdminScreen(
                             items(filteredList) { uni ->
                                 UniversityCard(
                                     uni = uni,
-                                    // UPDATED: Pass UID and uni.name to the navigation callback
-                                    onCardClick = { onNavigateToListUniversitas(uid, uni.name) },
+                                    // Kirim ID Universitas ke callback navigasi
+                                    onCardClick = { onNavigateToListUniversitas(uid, uni.id) },
                                     onEditClick = {
                                         selectedUniForEdit = uni
                                         showEditUniDialog = true
@@ -179,34 +177,48 @@ fun DashboardAdminScreen(
         }
     }
 
-    // --- DIALOGS (Same as previous) ---
+    // --- DIALOGS ---
+
+    // 1. EDIT UNIVERSITAS DIALOG
     if (showEditUniDialog && selectedUniForEdit != null) {
         EditUniversityDialog(
             university = selectedUniForEdit!!,
             onDismiss = { showEditUniDialog = false },
-            onSave = { accreditation, cluster -> showEditUniDialog = false },
+            onSave = { accreditation, cluster ->
+                viewModel.updateUniversity(selectedUniForEdit!!.id, accreditation, cluster)
+                showEditUniDialog = false
+            },
             onDelete = { showEditUniDialog = false; showDeleteConfirmDialog = true }
         )
     }
 
+    // 2. HAPUS UNIVERSITAS DIALOG
     if (showDeleteConfirmDialog && selectedUniForEdit != null) {
         DeleteConfirmationDialog(
             universityName = selectedUniForEdit!!.name,
             onDismiss = { showDeleteConfirmDialog = false },
-            onConfirm = { showDeleteConfirmDialog = false; selectedUniForEdit = null }
+            onConfirm = {
+                viewModel.deleteUniversity(selectedUniForEdit!!.id)
+                showDeleteConfirmDialog = false; selectedUniForEdit = null
+            }
         )
     }
 
+    // 3. EDIT CLUSTER DIALOG
     if (showEditClusterDialog && selectedClusterForEdit != null) {
         EditClusterDialog(
             cluster = selectedClusterForEdit!!,
             onDismiss = { showEditClusterDialog = false },
-            onSave = { showEditClusterDialog = false }
+            onSave = { newNominal ->
+                viewModel.updateCluster(selectedClusterForEdit!!.id, newNominal)
+                showEditClusterDialog = false
+            }
         )
     }
 }
 
-// ... (Rest of components: AdminSearchBar, AdminTabItem, UniversityCard, etc. remain unchanged) ...
+// ... KOMPONEN UI LAINNYA ...
+
 @Composable
 fun AdminSearchBar(
     query: String,
@@ -333,7 +345,9 @@ fun ClusterCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Cluster ${cluster.name}", fontWeight = FontWeight.Bold, color = Purple300, fontSize = 16.sp)
+                // PERBAIKAN: Hapus kata "Cluster" string literal, karena cluster.name sudah mengandung kata "Cluster"
+                Text(text = cluster.name, fontWeight = FontWeight.Bold, color = Purple300, fontSize = 16.sp)
+
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = "Bantuan: ${formatter.format(cluster.nominal)}", color = Purple300, fontSize = 14.sp)
             }
@@ -436,6 +450,7 @@ fun EditClusterDialog(
         title = { Text("Edit Cluster", fontWeight = FontWeight.Bold, color = Purple300) },
         text = {
             Column {
+                // Hapus juga prefix "Cluster" di dialog jika diperlukan, tapi biasanya judul dialog pakai nama lengkap.
                 Text(cluster.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 16.dp))
                 OutlinedTextField(
                     value = nominalString,

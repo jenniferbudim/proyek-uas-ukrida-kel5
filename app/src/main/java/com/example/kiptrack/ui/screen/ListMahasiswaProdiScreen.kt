@@ -18,29 +18,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.theme.Purple50
 import com.example.kiptrack.ui.theme.Purple200
+import com.example.kiptrack.ui.viewmodel.ListMahasiswaViewModel
+import com.example.kiptrack.ui.viewmodel.ListMahasiswaViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListMahasiswaProdiScreen(
     uid: String,
-    programStudiName: String,
-    onNavigateToDetailMahasiswa: (String, String) -> Unit, // NEW: Callback to navigate to student detail
+    universityId: String, // <-- PERBAIKAN: Terima UnivID
+    prodiId: String,      // <-- PERBAIKAN: Terima ProdiID
+    onNavigateToDetailMahasiswa: (String, String) -> Unit, // (UID, StudentUID)
     onBackClick: () -> Unit
 ) {
+    val viewModel: ListMahasiswaViewModel = viewModel(
+        factory = ListMahasiswaViewModelFactory(universityId, prodiId)
+    )
+    val state = viewModel.uiState
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = programStudiName,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        maxLines = 2,
-                        lineHeight = 22.sp
-                    )
+                    Text(state.prodiName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
@@ -61,24 +64,24 @@ fun ListMahasiswaProdiScreen(
                 .background(Color.White)
                 .padding(paddingValues)
         ) {
-            // Mock Data for students
-            val mockStudents = listOf(
-                "Naufal Ramadhan", "Adinda Putri", "Rizky Firmansyah",
-                "Siti Aisyah", "Budi Santoso", "Dewi Lestari", "Cahyo Nugroho"
-            )
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(mockStudents) { studentName ->
-                    MahasiswaListItem(
-                        name = studentName,
-                        prodi = programStudiName,
-                        // Trigger navigation, passing admin UID and student name
-                        onClick = { onNavigateToDetailMahasiswa(uid, studentName) }
-                    )
+            if (state.isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Purple300)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(state.mahasiswaList) { mhs ->
+                        MahasiswaListItem(
+                            name = mhs.nama,
+                            nim = mhs.nim,
+                            // Kirim UID Mahasiswa Asli
+                            onClick = { onNavigateToDetailMahasiswa(uid, mhs.uid) }
+                        )
+                    }
                 }
             }
         }
@@ -86,57 +89,27 @@ fun ListMahasiswaProdiScreen(
 }
 
 @Composable
-fun MahasiswaListItem(name: String, prodi: String, onClick: () -> Unit) {
+fun MahasiswaListItem(name: String, nim: String, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Purple50.copy(alpha = 0.3f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() } // Use the new onClick handler
+        modifier = Modifier.fillMaxWidth().clickable { onClick() }
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Placeholder Avatar/Icon
             Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Purple200),
+                modifier = Modifier.size(48.dp).clip(CircleShape).background(Purple200),
                 contentAlignment = Alignment.Center
             ) {
-                // Display the first letter of the name
-                Text(
-                    text = name.first().toString(),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
+                Text(name.first().toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
             }
-
             Spacer(modifier = Modifier.width(16.dp))
-
             Column {
-                Text(
-                    text = name,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    color = Purple300
-                )
-                Text(
-                    text = "NIM: 20210${(100..999).random()}", // Mock NIM
-                    fontSize = 12.sp,
-                    color = Purple300.copy(alpha = 0.7f)
-                )
-                Text(
-                    text = "Prodi: $prodi",
-                    fontSize = 12.sp,
-                    color = Purple300.copy(alpha = 0.5f)
-                )
+                Text(name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Purple300)
+                Text("NIM: $nim", fontSize = 12.sp, color = Purple300.copy(alpha = 0.7f))
             }
         }
     }

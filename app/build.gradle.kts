@@ -56,6 +56,7 @@ dependencies {
     implementation("androidx.room:room-runtime:2.6.1")
     implementation(libs.firebase.firestore)
     implementation(libs.androidx.compose.ui.geometry)
+    implementation(libs.androidx.constraintlayout)
     ksp("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 

@@ -7,48 +7,63 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.kiptrack.R // Make sure to import your R file for images if needed
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.DetailTab
-import com.example.kiptrack.ui.theme.PieGreen
-import com.example.kiptrack.ui.theme.PieOrange
-import com.example.kiptrack.ui.theme.PieRed
-import com.example.kiptrack.ui.theme.PurpleDark
-import com.example.kiptrack.ui.theme.Purple50
-import com.example.kiptrack.ui.theme.PurpleTextDeep
+import com.example.kiptrack.ui.data.Transaction
+import com.example.kiptrack.ui.theme.*
+import com.example.kiptrack.ui.utils.ImageUtils
+import com.example.kiptrack.ui.viewmodel.DetailMahasiswaUiState
+import com.example.kiptrack.ui.viewmodel.DetailMahasiswaViewModel
+import com.example.kiptrack.ui.viewmodel.DetailMahasiswaViewModelFactory
+import java.text.NumberFormat
+import java.util.Locale
+
+// Helper Format Rupiah
+fun formatRupiahDetail(amount: Long): String {
+    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
+    formatter.maximumFractionDigits = 0
+    return formatter.format(amount).replace("Rp", "Rp ")
+}
 
 @Composable
 fun DetailMahasiswaScreen(
-    mahasiswaName: String = "Blessy Jeniffer",
-    uid: String,
+    uid: String, // Admin UID
+    studentUid: String, // Target Student UID
     onBackClick: () -> Unit
 ) {
-    // Default tab is Mail (Konfirmasi) based on the first image provided
-    var selectedTab by remember { mutableStateOf(DetailTab.Konfirmasi) }
+    val viewModel: DetailMahasiswaViewModel = viewModel(
+        factory = DetailMahasiswaViewModelFactory(uid, studentUid)
+    )
+    val state = viewModel.uiState
+
+    // Tab Logic: Default Home (Charts)
+    var selectedTab by remember { mutableStateOf(DetailTab.Home) }
 
     Scaffold(
         bottomBar = {
@@ -64,15 +79,36 @@ fun DetailMahasiswaScreen(
                 .background(Purple50)
                 .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
-            // --- HEADER SECTION (Common to all tabs) ---
-            CommonHeader(mahasiswaName, onBackClick)
+            // --- HEADER ---
+            CommonHeader(state, onBackClick)
 
-            // --- TAB CONTENT ---
+            // --- CONTENT ---
             Box(modifier = Modifier.weight(1f)) {
-                when (selectedTab) {
-                    DetailTab.Konfirmasi -> TabContentCharts() // Mail Icon -> Charts
-                    DetailTab.Home -> TabContentHistory() // Home Icon -> List
-                    DetailTab.Perincian -> TabContentDetail() // Eye Icon -> Single Detail
+                if (state.isLoading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = PurplePrimary)
+                    }
+                } else {
+                    when (selectedTab) {
+                        // Image 1: Charts & Summary
+                        DetailTab.Home -> TabContentCharts(state)
+
+                        // Image 2: List History
+                        DetailTab.Konfirmasi -> TabContentHistory(
+                            transactions = state.transactionList,
+                            onItemClick = { trx ->
+                                viewModel.selectTransaction(trx)
+                                selectedTab = DetailTab.Perincian // Pindah ke tab detail
+                            }
+                        )
+
+                        // Image 3: Detail & Approval
+                        DetailTab.Perincian -> TabContentDetail(
+                            transaction = state.selectedTransaction,
+                            onApprove = { viewModel.approveTransaction(it.id) },
+                            onDeny = { viewModel.denyTransaction(it.id, it.amount) }
+                        )
+                    }
                 }
             }
         }
@@ -81,11 +117,11 @@ fun DetailMahasiswaScreen(
 
 // --- HEADER COMPONENT ---
 @Composable
-fun CommonHeader(name: String, onBackClick: () -> Unit) {
+fun CommonHeader(state: DetailMahasiswaUiState, onBackClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp) // Height for the purple header area
+            .height(180.dp)
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(Color(0xFFD1C4E9), Color(0xFFB39DDB))
@@ -93,169 +129,110 @@ fun CommonHeader(name: String, onBackClick: () -> Unit) {
             )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Top Row: Back Button & Name & Profile
+            // Top Row
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 IconButton(onClick = onBackClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.ArrowBackIosNew,
-                        contentDescription = "Back",
-                        tint = PurpleDark
-                    )
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PurpleDark)
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = name,
+                    text = state.name,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = PurpleTextDeep
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                // Profile Placeholder
+
+                // Avatar
                 Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray) // Replace with Image
+                    modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.White),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Place an Image composable here for the avatar
-                    Icon(Icons.Outlined.Person, contentDescription = null, tint = Color.White, modifier = Modifier.align(Alignment.Center))
+                    if (state.photoProfile.isNotBlank()) {
+                        val bitmap = ImageUtils.base64ToBitmap(state.photoProfile)
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(Icons.Filled.Person, null, tint = Purple300)
+                        }
+                    } else {
+                        Icon(Icons.Filled.Person, null, tint = Purple300)
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Saldo Section
+            // Saldo
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Text("Saldo", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PurpleTextDeep.copy(alpha = 0.7f))
                 Text(
-                    text = "Saldo",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PurpleTextDeep.copy(alpha = 0.7f)
-                )
-                Text(
-                    text = "1.000.000",
+                    text = formatRupiahDetail(state.saldo),
                     fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    style = androidx.compose.ui.text.TextStyle(
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black.copy(alpha = 0.1f),
-                            blurRadius = 4f
-                        )
-                    )
+                    color = Color.White
                 )
             }
         }
     }
 }
 
-// --- TAB 1: KONFIRMASI (Mail Icon) -> CHARTS (Image 1) ---
+// --- TAB 1: DASHBOARD / CHARTS ---
 @Composable
-fun TabContentCharts() {
+fun TabContentCharts(state: DetailMahasiswaUiState) {
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 1. Summary Cards Row
+        // Summary Cards
         item {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                SummaryCard(
-                    title = "Total Pengeluaran",
-                    value = "1.500.000",
-                    modifier = Modifier.weight(1f)
-                )
-                SummaryCard(
-                    title = "Total Pelanggaran",
-                    value = "100.000",
-                    modifier = Modifier.weight(1f)
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                SummaryCard("Total Pengeluaran", formatRupiahDetail(state.totalPengeluaran), Modifier.weight(1f))
+                SummaryCard("Total Pelanggaran", formatRupiahDetail(state.totalPelanggaran), Modifier.weight(1f))
             }
         }
 
-        // 2. Line Chart Container
+        // Line Chart
         item {
             Card(
-                shape = RoundedCornerShape(0.dp), // The screenshot has a boxy look for the chart bg
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFA680C3)), // Darker purple for chart bg
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFA680C3)),
+                modifier = Modifier.fillMaxWidth().height(200.dp)
             ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    // Navigation Arrows
-                    Icon(
-                        Icons.Outlined.ChevronLeft, "Prev", tint = Color.White,
-                        modifier = Modifier.align(Alignment.CenterStart).padding(4.dp)
-                    )
-                    Icon(
-                        Icons.Outlined.ChevronRight, "Next", tint = Color.White,
-                        modifier = Modifier.align(Alignment.CenterEnd).padding(4.dp)
-                    )
-
-                    // Custom Line Chart Drawing
-                    CustomLineChart(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 32.dp, vertical = 24.dp)
-                    )
-
-                    // Month Labels at bottom
+                Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                    CustomLineChart(state.graphData, Modifier.fillMaxSize().padding(bottom = 20.dp))
+                    // Labels Bulan
                     Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp, start = 32.dp, end = 32.dp),
+                        modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        listOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT").forEach {
-                            Text(text = it, fontSize = 8.sp, color = Color.White)
+                        listOf("JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC").forEach {
+                            Text(it, fontSize = 8.sp, color = Color.White)
                         }
                     }
                 }
             }
         }
-
-        // 3. Pie Chart Section
-        item {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    "Rincian Kategori",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = PurpleTextDeep,
-                    modifier = Modifier.padding(vertical = 16.dp)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    // Pie Chart Graphic
-                    CustomPieChart(size = 120.dp)
-
-                    // Legend
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        LegendItem(color = PieRed, label = "Makanan & Minuman")
-                        LegendItem(color = PieGreen, label = "Transportasi")
-                        LegendItem(color = PieOrange, label = "Sandang")
-                    }
-                }
-            }
-        }
     }
 }
 
-// --- TAB 2: HOME (Home Icon) -> LIST/HISTORY (Image 2) ---
+// --- TAB 2: LIST HISTORY (MAIL ICON) ---
 @Composable
-fun TabContentHistory() {
+fun TabContentHistory(
+    transactions: List<Transaction>,
+    onItemClick: (Transaction) -> Unit
+) {
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             "Riwayat Pengeluaran",
@@ -269,162 +246,96 @@ fun TabContentHistory() {
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(4) { index ->
-                HistoryItemCard(index)
+            items(transactions) { trx ->
+                HistoryItemCard(trx, onClick = { onItemClick(trx) })
             }
         }
     }
 }
 
-// --- TAB 3: PERINCIAN (Eye Icon) -> DETAIL/APPROVAL (Image 3) ---
+// --- TAB 3: DETAIL KONFIRMASI (EYE ICON) ---
 @Composable
-fun TabContentDetail() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // White Card container with rounded corners
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Text(
-                    "Konfirmasi",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PurpleTextDeep,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                // Detail Fields
-                DetailLabelValue("Tanggal Pengeluaran :", "08/08/2025")
-                DetailLabelValue("Kategori Pengeluaran :", "Hunian")
-                DetailLabelValue("Deskripsi Pengeluaran :", "Uang Sewa Kos")
-                DetailLabelValue("Kuantitas :", "1")
-                DetailLabelValue("Harga Satuan :", "5.000.000")
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Bukti :", fontSize = 12.sp, color = PurpleTextDeep)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Placeholder for Proof Image (BCA)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(100.dp)
-                        .background(Color(0xFFE3F2FD), RoundedCornerShape(8.dp))
-                        .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Image Proof Placeholder", color = Color.Gray, fontSize = 10.sp)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Action Buttons (Deny / Approve)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    TextButton(onClick = {}) {
-                        Text("Deny", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                    TextButton(onClick = {}) {
-                        Text("Approve", color = Color(0xFF00C853), fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                }
-            }
-        }
-    }
-}
-
-// --- HELPER COMPONENTS ---
-
-@Composable
-fun CustomBottomNavigation(
-    selectedTab: DetailTab,
-    onTabSelected: (DetailTab) -> Unit
+fun TabContentDetail(
+    transaction: Transaction?,
+    onApprove: (Transaction) -> Unit,
+    onDeny: (Transaction) -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(80.dp), // Taller to accommodate floating button
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        // Purple Bar Background
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            color = Color(0xFF9575CD), // Bottom bar purple
-            // Optional: rounded top corners if desired
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        if (transaction == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Pilih transaksi dari list (ikon surat) terlebih dahulu.", color = Color.Gray, textAlign = TextAlign.Center)
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                // Left Icon (Home)
-                IconButton(
-                    onClick = { onTabSelected(DetailTab.Home) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        DetailTab.Home.icon,
-                        contentDescription = "Home",
-                        tint = if (selectedTab == DetailTab.Home) Color.White else Color.White.copy(alpha = 0.5f),
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Text("Konfirmasi", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PurpleTextDeep, modifier = Modifier.padding(bottom = 16.dp))
 
-                Spacer(modifier = Modifier.weight(1f)) // Space for center button
+                    DetailLabelValue("Tanggal", transaction.date)
+                    DetailLabelValue("Deskripsi", transaction.description)
+                    DetailLabelValue("Kuantitas", transaction.quantity.toString())
+                    DetailLabelValue("Harga Satuan", formatRupiahDetail(transaction.unitPrice))
+                    DetailLabelValue("Total", formatRupiahDetail(transaction.amount))
+                    DetailLabelValue("Status Saat Ini", transaction.status)
 
-                // Right Icon (Perincian/Eye)
-                IconButton(
-                    onClick = { onTabSelected(DetailTab.Perincian) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        DetailTab.Perincian.icon,
-                        contentDescription = "Detail",
-                        tint = if (selectedTab == DetailTab.Perincian) Color.White else Color.White.copy(alpha = 0.5f),
-                        modifier = Modifier.size(32.dp)
-                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text("Bukti :", fontSize = 12.sp, color = PurpleTextDeep)
+                    Spacer(Modifier.height(8.dp))
+
+                    // Bukti Image
+                    if (transaction.proofImage.isNotBlank()) {
+                        val bitmap = ImageUtils.base64ToBitmap(transaction.proofImage)
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(Modifier.fillMaxWidth().height(100.dp).background(Color.LightGray)) { Text("Gambar rusak", Modifier.align(Alignment.Center)) }
+                        }
+                    } else {
+                        Box(Modifier.fillMaxWidth().height(100.dp).background(Color.LightGray)) { Text("Tidak ada bukti", Modifier.align(Alignment.Center)) }
+                    }
+
+                    Spacer(Modifier.height(24.dp))
+
+                    // Buttons
+                    if (transaction.status == "MENUNGGU") {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            TextButton(onClick = { onDeny(transaction) }) {
+                                Text("Deny", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            }
+                            TextButton(onClick = { onApprove(transaction) }) {
+                                Text("Approve", color = Color(0xFF00C853), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            }
+                        }
+                    } else {
+                        Text(
+                            "Status: ${transaction.status}",
+                            color = if(transaction.isApproved) Color(0xFF00C853) else Color.Red,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+                    }
                 }
             }
         }
-
-        // Floating Center Button (Mail)
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = 10.dp) // Push it down slightly into the bar
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(Color(0xFF7E57C2)) // Slightly darker purple circle
-                .clickable { onTabSelected(DetailTab.Konfirmasi) }
-                .border(4.dp, Purple50, CircleShape), // White/Bg border
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                DetailTab.Konfirmasi.icon,
-                contentDescription = "Mail",
-                tint = Color.White,
-                modifier = Modifier.size(32.dp)
-            )
-        }
     }
 }
+
+// --- HELPER ITEMS ---
 
 @Composable
 fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.height(100.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFD1C4E9)), // Light purple card
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFD1C4E9)),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -440,37 +351,38 @@ fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun HistoryItemCard(index: Int) {
-    val isEven = index % 2 == 0
+fun HistoryItemCard(trx: Transaction, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("JAN", fontWeight = FontWeight.Bold, color = PurpleTextDeep)
-                Text("16/2025", fontSize = 12.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Rp${if(isEven) "50.000" else "20.000"}", fontWeight = FontWeight.Bold, color = PurpleTextDeep)
+                Text(trx.date.split(" ")[0], fontWeight = FontWeight.Bold, color = PurpleTextDeep) // Month (JAN)
+                Text(trx.date, fontSize = 12.sp, color = Color.Gray)
+                Spacer(Modifier.height(4.dp))
+                Text(formatRupiahDetail(trx.amount), fontWeight = FontWeight.Bold, color = PurpleTextDeep)
             }
-
             Column(horizontalAlignment = Alignment.End) {
-                Icon(
-                    imageVector = if(isEven) Icons.Outlined.CheckBox else Icons.Outlined.Warning,
-                    contentDescription = null,
-                    tint = if(isEven) Color(0xFF00C853) else Color.Red,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(if(isEven) "Buku" else "Alat Tulis", fontSize = 12.sp, color = PurpleTextDeep)
+                val icon = when {
+                    trx.isApproved -> Icons.Outlined.CheckBox
+                    trx.isRejected -> Icons.Outlined.Cancel
+                    else -> Icons.Outlined.Warning
+                }
+                val color = when {
+                    trx.isApproved -> Color(0xFF00C853)
+                    trx.isRejected -> Color.Red
+                    else -> Color(0xFFFFA000)
+                }
+                Icon(icon, null, tint = color, modifier = Modifier.size(28.dp))
+                Spacer(Modifier.height(4.dp))
+                Text(trx.description, fontSize = 12.sp, color = PurpleTextDeep)
             }
         }
     }
@@ -485,88 +397,50 @@ fun DetailLabelValue(label: String, value: String) {
 }
 
 @Composable
-fun LegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(12.dp).background(color))
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(label, fontSize = 12.sp, color = PieRed) // Using red for text based on image look
-    }
-}
+fun CustomLineChart(data: List<Long>, modifier: Modifier = Modifier) {
+    if (data.isEmpty()) return
+    val maxValue = data.maxOrNull()?.takeIf { it > 0 } ?: 1L
 
-// --- VISUALIZATIONS (Simple Canvas Implementations) ---
-
-@Composable
-fun CustomLineChart(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val width = size.width
         val height = size.height
-        // Mock points
-        val points = listOf(0.7f, 0.6f, 0.4f, 0.45f, 0.1f, 0.8f, 0.5f, 0.7f, 0.2f, 0.6f)
-        val stepX = width / (points.size - 1)
-
-        // Draw vertical grid lines
-        for (i in points.indices) {
-            drawLine(
-                color = Color.White.copy(alpha = 0.2f),
-                start = Offset(i * stepX, 0f),
-                end = Offset(i * stepX, height),
-                strokeWidth = 1f
-            )
-        }
-
-        // Draw Line Path
+        val stepX = width / 11f
         val path = Path()
-        points.forEachIndexed { index, value ->
-            val x = index * stepX
-            val y = value * height
-            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-        }
-        drawPath(
-            path = path,
-            color = Color.White,
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-        )
 
-        // Draw Dots
-        points.forEachIndexed { index, value ->
-            drawCircle(
-                color = Color.White,
-                radius = 3.dp.toPx(),
-                center = Offset(index * stepX, value * height)
-            )
+        data.forEachIndexed { index, value ->
+            val normalizedY = value.toFloat() / maxValue.toFloat()
+            val y = height - (normalizedY * height)
+            val x = index * stepX
+
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            drawCircle(Color.White, radius = 3.dp.toPx(), center = Offset(x, y))
         }
+        drawPath(path, Color.White, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
     }
 }
 
 @Composable
-fun CustomPieChart(size: androidx.compose.ui.unit.Dp) {
-    Canvas(modifier = Modifier.size(size)) {
-        val radius = size.toPx() / 2
-        val center = Offset(size.toPx() / 2, size.toPx() / 2)
-
-        // Slice 1 (Red - Big)
-        drawArc(
-            color = PieRed,
-            startAngle = 0f,
-            sweepAngle = 200f,
-            useCenter = true,
-            size = Size(size.toPx(), size.toPx())
-        )
-        // Slice 2 (Teal)
-        drawArc(
-            color = PieGreen,
-            startAngle = 200f,
-            sweepAngle = 90f,
-            useCenter = true,
-            size = Size(size.toPx(), size.toPx())
-        )
-        // Slice 3 (Orange)
-        drawArc(
-            color = PieOrange,
-            startAngle = 290f,
-            sweepAngle = 70f,
-            useCenter = true,
-            size = Size(size.toPx(), size.toPx())
-        )
+fun CustomBottomNavigation(selectedTab: DetailTab, onTabSelected: (DetailTab) -> Unit) {
+    Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.BottomCenter) {
+        Surface(modifier = Modifier.fillMaxWidth().height(60.dp), color = Color(0xFF9575CD)) {
+            Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { onTabSelected(DetailTab.Home) }, modifier = Modifier.weight(1f)) {
+                    Icon(DetailTab.Home.icon, null, tint = if (selectedTab == DetailTab.Home) Color.White else Color.White.copy(0.5f))
+                }
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { onTabSelected(DetailTab.Perincian) }, modifier = Modifier.weight(1f)) {
+                    Icon(DetailTab.Perincian.icon, null, tint = if (selectedTab == DetailTab.Perincian) Color.White else Color.White.copy(0.5f))
+                }
+            }
+        }
+        Box(
+            modifier = Modifier.align(Alignment.TopCenter).offset(y = 10.dp).size(64.dp)
+                .clip(CircleShape).background(Color(0xFF7E57C2))
+                .clickable { onTabSelected(DetailTab.Konfirmasi) }
+                .border(4.dp, Purple50, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(DetailTab.Konfirmasi.icon, null, tint = Color.White)
+        }
     }
 }
