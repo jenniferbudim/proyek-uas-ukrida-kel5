@@ -13,7 +13,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -37,9 +39,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.Transaction
-import com.example.kiptrack.ui.theme.DeepPurple
-import com.example.kiptrack.ui.theme.LightPurple
-import com.example.kiptrack.ui.theme.TextLabelColor
+import com.example.kiptrack.ui.theme.Purple300
+import com.example.kiptrack.ui.theme.Purple50
+import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModelFactory
 import java.text.NumberFormat
@@ -68,7 +70,7 @@ fun DashboardMahasiswaScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(LightPurple)
+                .background(Purple50)
                 .padding(paddingValues)
         ) {
             Column(
@@ -82,12 +84,12 @@ fun DashboardMahasiswaScreen(
                     text = "Dashboard Mahasiswa",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = DeepPurple,
+                    color = Purple300,
                     modifier = Modifier.padding(top = 24.dp, bottom = 20.dp)
                 )
 
                 if (state.isLoading) {
-                    CircularProgressIndicator(color = DeepPurple)
+                    CircularProgressIndicator(color = Purple300)
                 } else {
                     HeaderSection(
                         userName = state.userName,
@@ -177,10 +179,10 @@ fun HeaderSection(
                 // Welcome Text
                 Text(
                     buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = TextLabelColor.copy(alpha = 0.8f), fontSize = 14.sp)) {
+                        withStyle(style = SpanStyle(color = Purple300.copy(alpha = 0.8f), fontSize = 14.sp)) {
                             append("Welcome, \n")
                         }
-                        withStyle(style = SpanStyle(color = DeepPurple, fontWeight = FontWeight.Bold, fontSize = 18.sp)) {
+                        withStyle(style = SpanStyle(color = Purple300, fontWeight = FontWeight.Bold, fontSize = 18.sp)) {
                             append(userName)
                             append("!")
                         }
@@ -205,7 +207,7 @@ fun HeaderSection(
                 Icon(
                     imageVector = Icons.Filled.AddCircle,
                     contentDescription = "Add",
-                    tint = DeepPurple,
+                    tint = Purple300,
                     modifier = Modifier.size(36.dp)
                 )
             }
@@ -233,14 +235,14 @@ fun SaldoChartSection(
                 text = "Saldo Uang Saku",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = DeepPurple,
+                color = Purple300,
                 modifier = Modifier.padding(bottom = 4.dp)
             )
             Text(
                 text = formatRupiah(currentSaldo),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = TextLabelColor,
+                color = Purple300,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -250,17 +252,17 @@ fun SaldoChartSection(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
             ) {
                 IconButton(onClick = { onYearChange(-1) }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev Year", tint = DeepPurple)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev Year", tint = Purple300)
                 }
                 Text(
                     text = "$selectedYear",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = DeepPurple,
+                    color = Purple300,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 IconButton(onClick = { onYearChange(1) }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next Year", tint = DeepPurple)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next Year", tint = Purple300)
                 }
             }
 
@@ -318,7 +320,7 @@ fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
 
             if (previousPoint != null) {
                 drawLine(
-                    color = DeepPurple,
+                    color = Purple300,
                     start = previousPoint,
                     end = currentPoint,
                     strokeWidth = 2.dp.toPx(),
@@ -326,7 +328,7 @@ fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
                 )
             }
 
-            drawCircle(color = DeepPurple, radius = 3.dp.toPx(), center = currentPoint)
+            drawCircle(color = Purple300, radius = 3.dp.toPx(), center = currentPoint)
             drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = currentPoint)
 
             previousPoint = currentPoint
@@ -347,7 +349,7 @@ fun TransactionHistorySection(transactions: List<Transaction>) {
                 text = "Riwayat Pengeluaran",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = DeepPurple,
+                color = Purple300,
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
             )
 
@@ -396,49 +398,74 @@ fun TransactionHistorySection(transactions: List<Transaction>) {
 
 @Composable
 fun TransactionItem(transaction: Transaction) {
+    // 1. Tentukan Ikon dan Warna berdasarkan Status
+    val iconVector = when {
+        transaction.isApproved -> Icons.Outlined.CheckCircle
+        transaction.isRejected -> Icons.Default.Cancel // Silang Merah (Pastikan import Icons.Default.Cancel)
+        else -> Icons.Default.AccessTime // Ikon Jam untuk Pending (Pastikan import Icons.Default.AccessTime)
+    }
+
+    val iconColor = when {
+        transaction.isApproved -> Color(0xFF00C853) // Hijau
+        transaction.isRejected -> Color(0xFFFF5252) // Merah
+        else -> Color(0xFFFFA000) // Kuning/Orange (Pending)
+    }
+
+    // 2. UI Row
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(LightPurple.copy(alpha = 0.5f))
+            .background(Purple50.copy(alpha = 0.5f))
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Kolom Kiri: Tanggal & Nominal
         Column {
             Text(
                 text = transaction.date.substringBefore("/"),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = DeepPurple,
+                color = Purple300,
                 textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
             )
             Text(
                 text = transaction.date.substringAfter("/"),
                 fontSize = 12.sp,
-                color = DeepPurple.copy(alpha = 0.7f)
+                color = Purple300.copy(alpha = 0.7f)
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = formatRupiah(transaction.amount),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = DeepPurple
+                color = Purple300
             )
         }
 
+        // Kolom Kanan: Deskripsi & Ikon Status
         Column(horizontalAlignment = Alignment.End) {
             Icon(
-                imageVector = if (transaction.isApproved) Icons.Outlined.CheckCircle else Icons.Filled.Warning,
-                contentDescription = null,
-                tint = if (transaction.isApproved) Color(0xFF00C853) else Color(0xFFFF5252),
-                modifier = Modifier.size(28.dp).padding(bottom = 4.dp)
+                imageVector = iconVector,
+                contentDescription = transaction.status,
+                tint = iconColor,
+                modifier = Modifier
+                    .size(28.dp)
+                    .padding(bottom = 4.dp)
             )
             Text(
                 text = transaction.description,
                 fontSize = 14.sp,
-                color = DeepPurple,
+                color = Purple300,
                 fontWeight = FontWeight.Medium
+            )
+            // Tambahkan Teks Status kecil (Opsional)
+            Text(
+                text = transaction.status, // "MENUNGGU", "DISETUJUI", dll
+                fontSize = 10.sp,
+                color = iconColor,
+                fontWeight = FontWeight.Light
             )
         }
     }

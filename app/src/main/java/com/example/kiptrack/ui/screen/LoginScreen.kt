@@ -37,11 +37,9 @@ import com.example.kiptrack.R
 import com.example.kiptrack.ui.event.LoginEvent
 import com.example.kiptrack.ui.model.UserRole
 import com.example.kiptrack.ui.state.LoginUiState
-import com.example.kiptrack.ui.theme.BackgroundGradientStart
-import com.example.kiptrack.ui.theme.DeepPurple
-import com.example.kiptrack.ui.theme.LightPurple
-import com.example.kiptrack.ui.theme.MediumPurple
-import com.example.kiptrack.ui.theme.TextLabelColor
+import com.example.kiptrack.ui.theme.Purple50
+import com.example.kiptrack.ui.theme.Purple300
+import com.example.kiptrack.ui.theme.Purple200
 import com.example.kiptrack.ui.viewmodel.LoginViewModel
 
 @Composable
@@ -83,7 +81,7 @@ fun LoginScreen(
 fun GeneralLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(MediumPurple)) {
+        .background(Purple200)) {
         Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(60.dp))
             Icon(
@@ -93,21 +91,21 @@ fun GeneralLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
                 tint = Color.Unspecified
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Welcome to KIP Track", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextLabelColor)
+            Text(text = "Welcome to KIP Track", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Purple300)
             Spacer(modifier = Modifier.height(30.dp))
-            Surface(modifier = Modifier.fillMaxSize(), shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp), color = LightPurple) {
+            Surface(modifier = Modifier.fillMaxSize(), shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp), color = Purple50) {
                 Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                         UserRole.values().filter { it != UserRole.ADMIN }.forEach { role ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
                                 .clickable { onEvent(LoginEvent.OnRoleSelected(role)) }
                                 .padding(8.dp)) {
-                                Text(text = role.label, color = if (state.selectedRole == role) DeepPurple else Color.Gray, fontWeight = FontWeight.Bold)
+                                Text(text = role.label, color = if (state.selectedRole == role) Purple300 else Color.Gray, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 if (state.selectedRole == role) Box(modifier = Modifier
                                     .width(80.dp)
                                     .height(3.dp)
-                                    .background(DeepPurple))
+                                    .background(Purple300))
                             }
                         }
                     }
@@ -120,7 +118,7 @@ fun GeneralLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
                     Spacer(modifier = Modifier.weight(1f))
                     OutlinedIconButton(onClick = { onEvent(LoginEvent.OnToggleAdminMode) }, modifier = Modifier
                         .size(60.dp)
-                        .border(1.dp, DeepPurple, CircleShape), colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = DeepPurple)) {
+                        .border(1.dp, Purple300, CircleShape), colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = Purple300)) {
                         Icon(imageVector = Icons.Filled.Settings, contentDescription = "Admin Login", modifier = Modifier.size(30.dp))
                     }
                     Spacer(modifier = Modifier.height(20.dp))
@@ -134,14 +132,14 @@ fun GeneralLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
 fun AdminLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(brush = Brush.verticalGradient(colors = listOf(MediumPurple, BackgroundGradientStart)))) {
+        .background(brush = Brush.verticalGradient(colors = listOf(Purple200, Purple50)))) {
         Column(modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(80.dp))
             Icon(painter = painterResource(id = R.drawable.kiptrack), contentDescription = "Logo", modifier = Modifier.size(100.dp), tint = Color.Unspecified)
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Login sebagai Admin", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = DeepPurple)
+            Text(text = "Login sebagai Admin", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Purple300)
             Spacer(modifier = Modifier.height(50.dp))
             LoginForm(idLabel = "Username", idPlaceholder = "Masukkan Username Admin", inputId = state.inputId, password = state.password, onIdChange = { onEvent(LoginEvent.OnIdChange(it)) }, onPasswordChange = { onEvent(LoginEvent.OnPasswordChange(it)) }, isLoading = state.isLoading)
             Spacer(modifier = Modifier.height(60.dp))
@@ -172,10 +170,10 @@ fun LoginForm(
     isLoading: Boolean
 ) {
     Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
-        Text(text = "$idLabel :", color = DeepPurple, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+        Text(text = "$idLabel :", color = Purple300, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
         CustomTextField(value = inputId, onValueChange = onIdChange, placeholder = idPlaceholder, enabled = !isLoading)
         Spacer(modifier = Modifier.height(20.dp))
-        Text(text = "Password :", color = DeepPurple, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+        Text(text = "Password :", color = Purple300, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
 
         CustomTextField(value = password, onValueChange = onPasswordChange, placeholder = "Masukkan Password Anda", isPassword = true, enabled = !isLoading)
     }
@@ -204,7 +202,7 @@ fun CustomTextField(
     }
 
     val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-    val iconTint = DeepPurple.copy(alpha = 0.7f)
+    val iconTint = Purple300.copy(alpha = 0.7f)
 
     TextField(
         value = value,
@@ -253,16 +251,16 @@ fun PurpleButton(
         onClick = onClick,
         enabled = !isLoading,
         modifier = modifier.shadow(4.dp, RoundedCornerShape(50)),
-        colors = ButtonDefaults.buttonColors(containerColor = if (isPrimary) MediumPurple else Color(0xFFE1BEE7)),
+        colors = ButtonDefaults.buttonColors(containerColor = if (isPrimary) Purple200 else Color(0xFFE1BEE7)),
         contentPadding = PaddingValues(vertical = 16.dp, horizontal = 50.dp)
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                color = if (isPrimary) TextLabelColor else MediumPurple,
+                color = if (isPrimary) Purple300 else Purple200,
                 modifier = Modifier.size(24.dp)
             )
         } else {
-            Text(text = text, color = if (isPrimary) TextLabelColor else TextLabelColor, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(text = text, color = if (isPrimary) Purple300 else Purple300, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }

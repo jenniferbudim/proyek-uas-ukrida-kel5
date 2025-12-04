@@ -18,9 +18,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.kiptrack.ui.theme.DeepPurple
-import com.example.kiptrack.ui.theme.LightPurple
-import com.example.kiptrack.ui.theme.MediumPurple
+import com.example.kiptrack.ui.theme.Purple300
+import com.example.kiptrack.ui.theme.Purple50
+import com.example.kiptrack.ui.theme.Purple200
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +48,7 @@ fun ListMahasiswaProdiScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MediumPurple,
+                    containerColor = Purple200,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -89,7 +89,7 @@ fun ListMahasiswaProdiScreen(
 fun MahasiswaListItem(name: String, prodi: String, onClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = LightPurple.copy(alpha = 0.3f)),
+        colors = CardDefaults.cardColors(containerColor = Purple50.copy(alpha = 0.3f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier
             .fillMaxWidth()
@@ -106,7 +106,7 @@ fun MahasiswaListItem(name: String, prodi: String, onClick: () -> Unit) {
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(MediumPurple),
+                    .background(Purple200),
                 contentAlignment = Alignment.Center
             ) {
                 // Display the first letter of the name
@@ -125,17 +125,17 @@ fun MahasiswaListItem(name: String, prodi: String, onClick: () -> Unit) {
                     text = name,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = DeepPurple
+                    color = Purple300
                 )
                 Text(
                     text = "NIM: 20210${(100..999).random()}", // Mock NIM
                     fontSize = 12.sp,
-                    color = DeepPurple.copy(alpha = 0.7f)
+                    color = Purple300.copy(alpha = 0.7f)
                 )
                 Text(
                     text = "Prodi: $prodi",
                     fontSize = 12.sp,
-                    color = DeepPurple.copy(alpha = 0.5f)
+                    color = Purple300.copy(alpha = 0.5f)
                 )
             }
         }

@@ -32,9 +32,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.CategorySummary
 import com.example.kiptrack.ui.data.MonthlyData
-import com.example.kiptrack.ui.theme.DeepPurple
-import com.example.kiptrack.ui.theme.LightPurple
-import com.example.kiptrack.ui.theme.MediumPurple
+import com.example.kiptrack.ui.theme.Purple300
+import com.example.kiptrack.ui.theme.Purple50
 import com.example.kiptrack.ui.viewmodel.DashboardWaliViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardWaliViewModelFactory
 import java.text.NumberFormat
@@ -64,7 +63,7 @@ fun DashboardWaliScreen(uid: String) {
     ) {
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = DeepPurple)
+                CircularProgressIndicator(color = Purple300)
             }
         } else {
             Column(
@@ -85,7 +84,7 @@ fun DashboardWaliScreen(uid: String) {
                     Icon(
                         imageVector = Icons.Default.West,
                         contentDescription = "Back",
-                        tint = DeepPurple,
+                        tint = Purple300,
                         modifier = Modifier
                             .size(28.dp)
                             .align(Alignment.CenterStart)
@@ -100,7 +99,7 @@ fun DashboardWaliScreen(uid: String) {
                         Text(
                             text = "Welcome, Wali!",
                             fontSize = 16.sp,
-                            color = DeepPurple.copy(alpha = 0.8f),
+                            color = Purple300.copy(alpha = 0.8f),
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -170,7 +169,7 @@ fun DashboardWaliScreen(uid: String) {
                     Icon(
                         Icons.Default.ChevronLeft,
                         contentDescription = "Previous",
-                        tint = DeepPurple.copy(alpha = 0.8f),
+                        tint = Purple300.copy(alpha = 0.8f),
                         modifier = Modifier
                             .size(32.dp)
                             .align(Alignment.CenterStart)
@@ -179,7 +178,7 @@ fun DashboardWaliScreen(uid: String) {
                     Icon(
                         Icons.Default.ChevronRight,
                         contentDescription = "Next",
-                        tint = DeepPurple.copy(alpha = 0.8f),
+                        tint = Purple300.copy(alpha = 0.8f),
                         modifier = Modifier
                             .size(32.dp)
                             .align(Alignment.CenterEnd)
@@ -194,7 +193,7 @@ fun DashboardWaliScreen(uid: String) {
                     text = "Rincian Kategori",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = DeepPurple,
+                    color = Purple300,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()

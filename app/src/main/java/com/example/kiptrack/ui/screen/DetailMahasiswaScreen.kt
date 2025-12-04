@@ -38,8 +38,8 @@ import com.example.kiptrack.ui.theme.PieGreen
 import com.example.kiptrack.ui.theme.PieOrange
 import com.example.kiptrack.ui.theme.PieRed
 import com.example.kiptrack.ui.theme.PurpleDark
-import com.example.kiptrack.ui.theme.PurpleLightBg
-import com.example.kiptrack.ui.theme.TextPurple
+import com.example.kiptrack.ui.theme.Purple50
+import com.example.kiptrack.ui.theme.PurpleTextDeep
 
 @Composable
 fun DetailMahasiswaScreen(
@@ -61,7 +61,7 @@ fun DetailMahasiswaScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(PurpleLightBg)
+                .background(Purple50)
                 .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
             // --- HEADER SECTION (Common to all tabs) ---
@@ -110,7 +110,7 @@ fun CommonHeader(name: String, onBackClick: () -> Unit) {
                     text = name,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
-                    color = TextPurple
+                    color = PurpleTextDeep
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 // Profile Placeholder
@@ -136,7 +136,7 @@ fun CommonHeader(name: String, onBackClick: () -> Unit) {
                     text = "Saldo",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPurple.copy(alpha = 0.7f)
+                    color = PurpleTextDeep.copy(alpha = 0.7f)
                 )
                 Text(
                     text = "1.000.000",
@@ -230,7 +230,7 @@ fun TabContentCharts() {
                     "Rincian Kategori",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    color = TextPurple,
+                    color = PurpleTextDeep,
                     modifier = Modifier.padding(vertical = 16.dp)
                 )
                 Row(
@@ -261,7 +261,7 @@ fun TabContentHistory() {
             "Riwayat Pengeluaran",
             fontWeight = FontWeight.Bold,
             fontSize = 18.sp,
-            color = TextPurple,
+            color = PurpleTextDeep,
             modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally)
         )
 
@@ -296,7 +296,7 @@ fun TabContentDetail() {
                     "Konfirmasi",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPurple,
+                    color = PurpleTextDeep,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
@@ -308,7 +308,7 @@ fun TabContentDetail() {
                 DetailLabelValue("Harga Satuan :", "5.000.000")
 
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("Bukti :", fontSize = 12.sp, color = TextPurple)
+                Text("Bukti :", fontSize = 12.sp, color = PurpleTextDeep)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Placeholder for Proof Image (BCA)
@@ -407,7 +407,7 @@ fun CustomBottomNavigation(
                 .clip(CircleShape)
                 .background(Color(0xFF7E57C2)) // Slightly darker purple circle
                 .clickable { onTabSelected(DetailTab.Konfirmasi) }
-                .border(4.dp, PurpleLightBg, CircleShape), // White/Bg border
+                .border(4.dp, Purple50, CircleShape), // White/Bg border
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -432,7 +432,7 @@ fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextPurple, textAlign = TextAlign.Center)
+            Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PurpleTextDeep, textAlign = TextAlign.Center)
             Spacer(modifier = Modifier.height(8.dp))
             Text(value, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
         }
@@ -456,10 +456,10 @@ fun HistoryItemCard(index: Int) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("JAN", fontWeight = FontWeight.Bold, color = TextPurple)
+                Text("JAN", fontWeight = FontWeight.Bold, color = PurpleTextDeep)
                 Text("16/2025", fontSize = 12.sp, color = Color.Gray)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("Rp${if(isEven) "50.000" else "20.000"}", fontWeight = FontWeight.Bold, color = TextPurple)
+                Text("Rp${if(isEven) "50.000" else "20.000"}", fontWeight = FontWeight.Bold, color = PurpleTextDeep)
             }
 
             Column(horizontalAlignment = Alignment.End) {
@@ -470,7 +470,7 @@ fun HistoryItemCard(index: Int) {
                     modifier = Modifier.size(28.dp)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(if(isEven) "Buku" else "Alat Tulis", fontSize = 12.sp, color = TextPurple)
+                Text(if(isEven) "Buku" else "Alat Tulis", fontSize = 12.sp, color = PurpleTextDeep)
             }
         }
     }
@@ -479,8 +479,8 @@ fun HistoryItemCard(index: Int) {
 @Composable
 fun DetailLabelValue(label: String, value: String) {
     Column(modifier = Modifier.padding(vertical = 4.dp)) {
-        Text(label, fontSize = 12.sp, color = TextPurple.copy(alpha = 0.7f))
-        Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPurple)
+        Text(label, fontSize = 12.sp, color = PurpleTextDeep.copy(alpha = 0.7f))
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PurpleTextDeep)
     }
 }
 

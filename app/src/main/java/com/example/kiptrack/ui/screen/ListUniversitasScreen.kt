@@ -18,9 +18,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.kiptrack.ui.theme.DeepPurple
-import com.example.kiptrack.ui.theme.LightPurple
-import com.example.kiptrack.ui.theme.MediumPurple
+import com.example.kiptrack.ui.theme.Purple300
+import com.example.kiptrack.ui.theme.Purple50
+import com.example.kiptrack.ui.theme.Purple200
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,7 +48,7 @@ fun ListUniversitasScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MediumPurple,
+                    containerColor = Purple200,
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -57,7 +57,7 @@ fun ListUniversitasScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { /* TODO: Handle Add Program Studi */ },
-                containerColor = DeepPurple,
+                containerColor = Purple300,
                 contentColor = Color.White,
                 shape = CircleShape
             ) {
@@ -68,7 +68,7 @@ fun ListUniversitasScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(LightPurple)
+                .background(Purple50)
                 .padding(paddingValues)
         ) {
             // Mock Data mimicking "Program Studi"
@@ -115,20 +115,20 @@ fun ProgramStudiItem(name: String, onClick: () -> Unit) {
                 text = name,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
-                color = DeepPurple
+                color = Purple300
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Non-Kedokteran",
                 fontSize = 12.sp,
-                color = DeepPurple.copy(alpha = 0.5f),
+                color = Purple300.copy(alpha = 0.5f),
                 fontWeight = FontWeight.Medium
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "Sarjana (S1)",
                 fontSize = 14.sp,
-                color = DeepPurple,
+                color = Purple300,
                 fontWeight = FontWeight.SemiBold
             )
         }

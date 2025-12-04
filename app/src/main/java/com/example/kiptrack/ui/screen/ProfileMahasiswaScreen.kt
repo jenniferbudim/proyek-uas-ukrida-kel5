@@ -58,7 +58,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
     }
 
     Scaffold(
-        containerColor = RefHeaderPurple,
+        containerColor = PurplePrimary,
         topBar = {
             TopAppBar(
                 title = { Text("Profile Mahasiswa", color = Color.White, fontWeight = FontWeight.Bold) },
@@ -67,7 +67,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = RefHeaderPurple)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PurplePrimary)
             )
         }
     ) { paddingValues ->
@@ -75,7 +75,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(RefHeaderPurple)
+                .background(PurplePrimary)
         ) {
             // --- HEADER (AVATAR & NAMA) ---
             Row(
@@ -94,7 +94,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                             .size(80.dp)
                             .align(Alignment.Center) // Posisi di tengah container
                             .clip(CircleShape)
-                            .background(RefAvatarBg)
+                            .background(AvatarBackground)
                             .border(2.dp, Color.White, CircleShape)
                             .clickable { launcher.launch("image/*") },
                         contentAlignment = Alignment.Center
@@ -109,10 +109,10 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
                                 )
                             } else {
-                                Icon(Icons.Default.Person, null, tint = RefAvatarIcon, modifier = Modifier.size(40.dp))
+                                Icon(Icons.Default.Person, null, tint = PurplePrimary, modifier = Modifier.size(40.dp))
                             }
                         } else {
-                            Icon(Icons.Default.Person, null, tint = RefAvatarIcon, modifier = Modifier.size(40.dp))
+                            Icon(Icons.Default.Person, null, tint = PurplePrimary, modifier = Modifier.size(40.dp))
                         }
                     }
 
@@ -124,13 +124,13 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                             .size(28.dp)
                             .clip(CircleShape)
                             .background(Color.White) // Background putih biar kontras
-                            .border(1.dp, RefAvatarBg, CircleShape),
+                            .border(1.dp, AvatarBackground, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.CameraAlt,
                             contentDescription = "Edit Foto",
-                            tint = DeepPurple,
+                            tint = Purple300,
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -162,7 +162,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                 shadowElevation = 4.dp
             ) {
                 if (state.isLoading) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DeepPurple) }
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Purple300) }
                 } else {
                     Column(
                         modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())
@@ -181,7 +181,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                         Button(
                             onClick = onLogoutClicked,
                             modifier = Modifier.fillMaxWidth(0.5f).height(48.dp).align(Alignment.CenterHorizontally),
-                            colors = ButtonDefaults.buttonColors(containerColor = RefHeaderPurple),
+                            colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
                             shape = RoundedCornerShape(50)
                         ) {
                             Text("Keluar", color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -199,7 +199,7 @@ fun ProfileDetailFieldStandard(label: String, value: String) {
         Text(
             text = label,
             fontSize = 13.sp,
-            color = RefLabelColor, // Pastikan ini terimport dari Theme
+            color = Purple300, // Pastikan ini terimport dari Theme
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
         )
@@ -207,13 +207,13 @@ fun ProfileDetailFieldStandard(label: String, value: String) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(RefInputBackground) // Pastikan ini terimport
+                .background(Purple50) // Pastikan ini terimport
                 .padding(vertical = 14.dp, horizontal = 16.dp)
         ) {
             Text(
                 text = value,
                 fontSize = 16.sp,
-                color = RefTextPurple, // Pastikan ini terimport
+                color = PurpleTextDeep, // Pastikan ini terimport
                 fontWeight = FontWeight.SemiBold
             )
         }

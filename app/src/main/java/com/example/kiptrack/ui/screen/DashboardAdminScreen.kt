@@ -34,10 +34,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.Cluster
 import com.example.kiptrack.ui.data.University
-import com.example.kiptrack.ui.theme.DeepPurple
-import com.example.kiptrack.ui.theme.LightPurple
-import com.example.kiptrack.ui.theme.MediumPurple
-import com.example.kiptrack.ui.theme.TextLabelColor
+import com.example.kiptrack.ui.theme.Purple300
+import com.example.kiptrack.ui.theme.Purple50
+import com.example.kiptrack.ui.theme.Purple200
+import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.viewmodel.DashboardAdminViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardAdminViewModelFactory
 import java.text.NumberFormat
@@ -69,7 +69,7 @@ fun DashboardAdminScreen(
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(MediumPurple, Color(0xFFE1BEE7))
+                    colors = listOf(Purple200, Color(0xFFE1BEE7))
                 )
             )
     ) {
@@ -87,7 +87,7 @@ fun DashboardAdminScreen(
                 Icon(
                     imageVector = Icons.Outlined.ExitToApp,
                     contentDescription = "Logout",
-                    tint = DeepPurple,
+                    tint = Purple200,
                     modifier = Modifier
                         .size(28.dp)
                         .align(Alignment.CenterStart)
@@ -95,7 +95,7 @@ fun DashboardAdminScreen(
                 )
                 Text(
                     text = buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = DeepPurple.copy(alpha = 0.6f))) { append("Hello, ") }
+                        withStyle(style = SpanStyle(color = Purple200.copy(alpha = 0.6f))) { append("Hello, ") }
                         withStyle(style = SpanStyle(color = Color(0xFF8E24AA), fontWeight = FontWeight.Bold)) { append(state.username); append("!") }
                     },
                     fontSize = 18.sp,
@@ -169,7 +169,7 @@ fun DashboardAdminScreen(
                         item {
                             Spacer(modifier = Modifier.height(10.dp))
                             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "More", tint = DeepPurple, modifier = Modifier.size(24.dp))
+                                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "More", tint = Purple300, modifier = Modifier.size(24.dp))
                             }
                             Spacer(modifier = Modifier.height(20.dp))
                         }
@@ -223,7 +223,7 @@ fun AdminSearchBar(
             .padding(horizontal = 20.dp)
             .shadow(4.dp, RoundedCornerShape(50))
             .clip(RoundedCornerShape(50)),
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon", tint = DeepPurple) },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search Icon", tint = Purple300) },
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.White,
             unfocusedContainerColor = Color.White,
@@ -232,7 +232,7 @@ fun AdminSearchBar(
             unfocusedIndicatorColor = Color.Transparent
         ),
         singleLine = true,
-        textStyle = TextStyle(color = DeepPurple, fontSize = 16.sp)
+        textStyle = TextStyle(color = Purple300, fontSize = 16.sp)
     )
 }
 
@@ -250,7 +250,7 @@ fun AdminTabItem(
     ) {
         Text(
             text = title,
-            color = if (isSelected) DeepPurple else Color.Gray,
+            color = if (isSelected) Purple300 else Color.Gray,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
             fontSize = 16.sp
         )
@@ -260,7 +260,7 @@ fun AdminTabItem(
                 modifier = Modifier
                     .width(80.dp)
                     .height(3.dp)
-                    .background(DeepPurple, shape = RoundedCornerShape(2.dp))
+                    .background(Purple300, shape = RoundedCornerShape(2.dp))
             )
         }
     }
@@ -277,7 +277,7 @@ fun UniversityCard(
             .fillMaxWidth()
             .clickable { onCardClick() },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = LightPurple.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = Purple50.copy(alpha = 0.5f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -300,13 +300,13 @@ fun UniversityCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = uni.name, fontWeight = FontWeight.Bold, color = DeepPurple, fontSize = 16.sp)
+                Text(text = uni.name, fontWeight = FontWeight.Bold, color = Purple300, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Akreditasi: ${uni.accreditation}", color = TextLabelColor, fontSize = 14.sp)
-                Text(text = "Cluster: ${uni.cluster}", color = TextLabelColor, fontSize = 14.sp)
+                Text(text = "Akreditasi: ${uni.accreditation}", color = Purple300, fontSize = 14.sp)
+                Text(text = "Cluster: ${uni.cluster}", color = Purple300, fontSize = 14.sp)
             }
             IconButton(onClick = onEditClick) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit University", tint = DeepPurple)
+                Icon(Icons.Default.Edit, contentDescription = "Edit University", tint = Purple300)
             }
         }
     }
@@ -322,7 +322,7 @@ fun ClusterCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = LightPurple.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = Purple50.copy(alpha = 0.5f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -333,12 +333,12 @@ fun ClusterCard(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "Cluster ${cluster.name}", fontWeight = FontWeight.Bold, color = DeepPurple, fontSize = 16.sp)
+                Text(text = "Cluster ${cluster.name}", fontWeight = FontWeight.Bold, color = Purple300, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Bantuan: ${formatter.format(cluster.nominal)}", color = TextLabelColor, fontSize = 14.sp)
+                Text(text = "Bantuan: ${formatter.format(cluster.nominal)}", color = Purple300, fontSize = 14.sp)
             }
             IconButton(onClick = onEditClick) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit Cluster", tint = DeepPurple)
+                Icon(Icons.Default.Edit, contentDescription = "Edit Cluster", tint = Purple300)
             }
         }
     }
@@ -356,7 +356,7 @@ fun EditUniversityDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Universitas", fontWeight = FontWeight.Bold, color = DeepPurple) },
+        title = { Text("Edit Universitas", fontWeight = FontWeight.Bold, color = Purple300) },
         text = {
             Column {
                 Text(university.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 16.dp))
@@ -378,7 +378,7 @@ fun EditUniversityDialog(
         confirmButton = {
             Button(
                 onClick = { onSave(accreditation, cluster) },
-                colors = ButtonDefaults.buttonColors(containerColor = DeepPurple)
+                colors = ButtonDefaults.buttonColors(containerColor = Purple300)
             ) {
                 Text("Simpan")
             }
@@ -390,7 +390,7 @@ fun EditUniversityDialog(
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 TextButton(onClick = onDismiss) {
-                    Text("Batal", color = DeepPurple)
+                    Text("Batal", color = Purple300)
                 }
             }
         }
@@ -405,7 +405,7 @@ fun DeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Hapus Universitas", fontWeight = FontWeight.Bold, color = DeepPurple) },
+        title = { Text("Hapus Universitas", fontWeight = FontWeight.Bold, color = Purple300) },
         text = { Text("Apakah Anda yakin ingin menghapus $universityName?") },
         confirmButton = {
             Button(
@@ -417,7 +417,7 @@ fun DeleteConfirmationDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Batal", color = DeepPurple)
+                Text("Batal", color = Purple300)
             }
         }
     )
@@ -433,7 +433,7 @@ fun EditClusterDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Cluster", fontWeight = FontWeight.Bold, color = DeepPurple) },
+        title = { Text("Edit Cluster", fontWeight = FontWeight.Bold, color = Purple300) },
         text = {
             Column {
                 Text(cluster.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 16.dp))
@@ -450,14 +450,14 @@ fun EditClusterDialog(
         confirmButton = {
             Button(
                 onClick = { onSave(nominalString.toLongOrNull() ?: 0L) },
-                colors = ButtonDefaults.buttonColors(containerColor = DeepPurple)
+                colors = ButtonDefaults.buttonColors(containerColor = Purple300)
             ) {
                 Text("Simpan")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Batal", color = DeepPurple)
+                Text("Batal", color = Purple300)
             }
         }
     )

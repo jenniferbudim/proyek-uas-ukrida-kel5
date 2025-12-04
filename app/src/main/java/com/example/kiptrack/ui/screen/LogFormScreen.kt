@@ -1,5 +1,9 @@
 package com.example.kiptrack.ui.screen
 
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,75 +22,80 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.ExpenseCategories
-import com.example.kiptrack.ui.theme.RefBgLightPurple
-import com.example.kiptrack.ui.theme.RefButtonBack
-import com.example.kiptrack.ui.theme.RefButtonSave
-import com.example.kiptrack.ui.theme.RefDropdownBg
-import com.example.kiptrack.ui.theme.RefHeaderPurple
-import com.example.kiptrack.ui.theme.RefTextPurple
+import com.example.kiptrack.ui.theme.*
+import com.example.kiptrack.ui.utils.ImageUtils
+import com.example.kiptrack.ui.viewmodel.LogFormViewModel
+import com.example.kiptrack.ui.viewmodel.LogFormViewModelFactory
 
-/**
- * Screen for students to log a new expense report.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
-    // State for form fields
-    var dateInput by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("") }
-    var unitPrice by remember { mutableStateOf("") }
+    // 1. Inisialisasi ViewModel
+    val viewModel: LogFormViewModel = viewModel(
+        factory = LogFormViewModelFactory(uid)
+    )
+    val state = viewModel.uiState
+    val context = LocalContext.current
 
-    // Dropdown State
-    var selectedCategory by remember { mutableStateOf<String?>(null) } // Start empty or null
-    var isExpanded by remember { mutableStateOf(false) }
+    // 2. Logic Image Picker
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val base64 = ImageUtils.uriToBase64(context, it)
+            if (base64 != null) {
+                viewModel.onPhotoSelected(base64)
+            }
+        }
+    }
+
+    // 3. Observer: Jika Sukses Simpan -> Kembali
+    LaunchedEffect(state.isSuccess) {
+        if (state.isSuccess) {
+            Toast.makeText(context, "Laporan Berhasil Disimpan!", Toast.LENGTH_SHORT).show()
+            onBackClicked() // Kembali ke Dashboard
+        }
+    }
+
+    // Observer: Jika Error
+    LaunchedEffect(state.errorMessage) {
+        state.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+        }
+    }
 
     val scrollState = rememberScrollState()
+    var isExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(RefBgLightPurple)
+            .background(Purple50)
     ) {
-        // --- Top Header Section ---
+        // --- Header Section (Tetap sama) ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp) // Taller to accommodate the card overlap
-                .background(RefHeaderPurple),
+                .height(220.dp)
+                .background(PurplePrimary),
             contentAlignment = Alignment.TopCenter
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(top = 50.dp)
             ) {
-                Text(
-                    "Total Saat Ini",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("Total Saat Ini", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    "Rp 1.283.940",
-                    color = Color.White,
-                    fontSize = 38.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Satu Juta Dua Ratus Delapan Puluh Tiga\nSembilan Ratus Empat Puluh Rupiah",
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 20.dp)
-                )
+                // Note: Idealnya Total ini diambil dari User Data (DashboardViewModel),
+                // tapi sementara hardcode dulu sesuai desain sampai kita passing data saldo.
+                Text("Rp 8.000.000", color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -97,9 +106,8 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-40).dp) // Overlap the header
+                    .offset(y = (-40).dp)
                     .padding(horizontal = 16.dp)
-                    // We constrain height so it doesn't go off screen, allowing inner scroll
                     .fillMaxHeight(0.95f),
                 shape = RoundedCornerShape(16.dp),
                 color = Color.White,
@@ -115,36 +123,32 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                         text = "Tambah Laporan",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = RefTextPurple,
+                        color = PurpleDark,
                         modifier = Modifier.padding(bottom = 24.dp)
                     )
 
                     // 1. Tanggal Pengeluaran
                     FormLabelRef("Tanggal Pengeluaran :")
                     CustomTextFieldRef(
-                        value = dateInput,
-                        onValueChange = { dateInput = it },
-                        placeholder = "DD / MM / YYYY",
-                        keyboardType = KeyboardType.Number
+                        value = state.dateInput,
+                        onValueChange = viewModel::onDateChange,
+                        placeholder = "Contoh: JAN 26/2025" // Format yang disepakati untuk grafik
                     )
                     Spacer(Modifier.height(20.dp))
 
-                    // 2. Kategori Pengeluaran (EXPOSED DROPDOWN MENU)
-                    // Matches Reference: Purple background, drops from field
+                    // 2. Kategori (Dropdown)
                     FormLabelRef("Kategori Pengeluaran :")
-
                     ExposedDropdownMenuBox(
                         expanded = isExpanded,
                         onExpandedChange = { isExpanded = !isExpanded },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // The Trigger Field
                         Box(
                             modifier = Modifier
-                                .menuAnchor() // This binds the dropdown location
+                                .menuAnchor()
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(RefDropdownBg) // Purple background from reference
+                                .background(Purple100)
                                 .clickable { isExpanded = true }
                                 .padding(horizontal = 16.dp, vertical = 16.dp)
                         ) {
@@ -154,66 +158,47 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = selectedCategory ?: "Pilih Kategori", // Placeholder logic
-                                    color = if(selectedCategory == null) RefTextPurple.copy(alpha = 0.5f) else RefTextPurple,
+                                    text = state.category ?: "Pilih Kategori",
+                                    color = if(state.category == null) PurpleDark.copy(alpha = 0.5f) else PurpleDark,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Icon(
                                     imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                                     contentDescription = null,
-                                    tint = RefTextPurple
+                                    tint = PurpleDark
                                 )
                             }
                         }
 
-                        // The Dropdown List
                         ExposedDropdownMenu(
                             expanded = isExpanded,
                             onDismissRequest = { isExpanded = false },
-                            modifier = Modifier
-                                .background(RefDropdownBg) // Match background color
-                                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                            modifier = Modifier.background(Purple100)
                         ) {
-                            ExpenseCategories.categories.forEachIndexed { index, category ->
+                            ExpenseCategories.categories.forEach { category ->
                                 DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = category,
-                                            color = RefTextPurple,
-                                            fontSize = 14.sp
-                                        )
-                                    },
+                                    text = { Text(category, color = PurpleDark, fontSize = 14.sp) },
                                     onClick = {
-                                        selectedCategory = category
+                                        viewModel.onCategoryChange(category)
                                         isExpanded = false
-                                    },
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
-                                    modifier = Modifier.background(RefDropdownBg)
+                                    }
                                 )
-                                // Divider between items (except last)
-                                if (index < ExpenseCategories.categories.lastIndex) {
-                                    HorizontalDivider(
-                                        modifier = Modifier.padding(horizontal = 16.dp),
-                                        color = RefTextPurple.copy(alpha = 0.2f),
-                                        thickness = 1.dp
-                                    )
-                                }
                             }
                         }
                     }
                     Spacer(Modifier.height(20.dp))
 
-                    // 3. Deskripsi Pengeluaran
+                    // 3. Deskripsi
                     FormLabelRef("Deskripsi Pengeluaran :")
                     CustomTextFieldRef(
-                        value = description,
-                        onValueChange = { description = it },
-                        placeholder = "Masukkan Deskripsi Pengeluaran"
+                        value = state.description,
+                        onValueChange = viewModel::onDescriptionChange,
+                        placeholder = "Masukkan Deskripsi"
                     )
                     Spacer(Modifier.height(20.dp))
 
-                    // 4 & 5. Kuantitas & Harga Satuan
+                    // 4 & 5. Kuantitas & Harga
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -221,18 +206,17 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                         Column(modifier = Modifier.weight(1f)) {
                             FormLabelRef("Kuantitas :")
                             CustomTextFieldRef(
-                                value = quantity,
-                                onValueChange = { quantity = it },
-                                placeholder = "Contoh: 2",
+                                value = state.quantity,
+                                onValueChange = viewModel::onQuantityChange,
+                                placeholder = "Contoh: 1",
                                 keyboardType = KeyboardType.Number
                             )
                         }
-
                         Column(modifier = Modifier.weight(1f)) {
                             FormLabelRef("Harga Satuan :")
                             CustomTextFieldRef(
-                                value = unitPrice,
-                                onValueChange = { unitPrice = it },
+                                value = state.unitPrice,
+                                onValueChange = viewModel::onUnitPriceChange,
                                 placeholder = "Contoh: 15000",
                                 keyboardType = KeyboardType.Number
                             )
@@ -242,7 +226,21 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
 
                     // 6. Upload Bukti
                     FormLabelRef("Upload Bukti :")
-                    UploadReceiptButtonRef()
+                    Button(
+                        onClick = { launcher.launch("image/*") },
+                        colors = ButtonDefaults.buttonColors(containerColor = if (state.photoBase64.isNotBlank()) Purple100 else Color.White),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(vertical = 14.dp),
+                        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(12.dp))
+                    ) {
+                        Icon(Icons.Filled.CloudUpload, null, tint = PurpleDark.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            text = if (state.photoBase64.isNotBlank()) "Foto Terpilih (Ganti?)" else "Pilih Foto dari Galeri",
+                            color = if (state.photoBase64.isNotBlank()) PurpleDark else Color.Gray.copy(alpha = 0.6f)
+                        )
+                    }
+
                     Spacer(Modifier.height(40.dp))
 
                     // Buttons
@@ -252,26 +250,27 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                     ) {
                         Button(
                             onClick = onBackClicked,
-                            colors = ButtonDefaults.buttonColors(containerColor = RefButtonBack),
+                            colors = ButtonDefaults.buttonColors(containerColor = Purple100),
                             shape = RoundedCornerShape(50),
-                            modifier = Modifier
-                                .weight(1f)
-                                .shadow(4.dp, RoundedCornerShape(50)),
+                            modifier = Modifier.weight(1f).shadow(4.dp, RoundedCornerShape(50)),
                             contentPadding = PaddingValues(vertical = 12.dp)
                         ) {
-                            Text("KEMBALI", color = RefTextPurple, fontWeight = FontWeight.Bold)
+                            Text("KEMBALI", color = PurpleDark, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
-                            onClick = { /* Save */ },
-                            colors = ButtonDefaults.buttonColors(containerColor = RefButtonSave),
+                            onClick = { viewModel.submitReport() }, // Submit Logic
+                            colors = ButtonDefaults.buttonColors(containerColor = Purple200),
                             shape = RoundedCornerShape(50),
-                            modifier = Modifier
-                                .weight(1f)
-                                .shadow(4.dp, RoundedCornerShape(50)),
+                            enabled = !state.isLoading,
+                            modifier = Modifier.weight(1f).shadow(4.dp, RoundedCornerShape(50)),
                             contentPadding = PaddingValues(vertical = 12.dp)
                         ) {
-                            Text("SIMPAN", color = RefTextPurple, fontWeight = FontWeight.Bold)
+                            if (state.isLoading) {
+                                CircularProgressIndicator(color = PurpleDark, modifier = Modifier.size(24.dp))
+                            } else {
+                                Text("SIMPAN", color = PurpleDark, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                     Spacer(Modifier.height(32.dp))
@@ -289,7 +288,7 @@ fun FormLabelRef(text: String) {
         text = text,
         fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
-        color = RefTextPurple,
+        color = PurpleDark,
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp)
@@ -350,7 +349,7 @@ fun UploadReceiptButtonRef() {
         Icon(
             imageVector = Icons.Filled.CloudUpload,
             contentDescription = "Upload",
-            tint = RefTextPurple.copy(alpha = 0.7f),
+            tint = PurpleDark.copy(alpha = 0.7f),
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.width(12.dp))
