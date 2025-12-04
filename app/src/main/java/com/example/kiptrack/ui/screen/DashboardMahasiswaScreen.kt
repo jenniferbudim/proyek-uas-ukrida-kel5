@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,7 +22,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,10 +31,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,7 +43,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.Transaction
 import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.theme.Purple50
-import com.example.kiptrack.ui.theme.Purple300
+import com.example.kiptrack.ui.utils.ImageUtils
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModelFactory
 import java.text.NumberFormat
@@ -54,6 +56,7 @@ fun formatRupiah(amount: Long): String {
     return formatter.format(amount).replace("Rp", "Rp ")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardMahasiswaScreen(
     uid: String,
@@ -65,6 +68,10 @@ fun DashboardMahasiswaScreen(
     )
     val state = viewModel.uiState
     val scrollState = rememberScrollState()
+
+    // --- STATE UNTUK BOTTOM SHEET ---
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
 
     Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
         Box(
@@ -94,7 +101,7 @@ fun DashboardMahasiswaScreen(
                     HeaderSection(
                         userName = state.userName,
                         uid = uid,
-                        photoProfile = state.photoProfile, // Pass dari state
+                        photoProfile = state.photoProfile,
                         onNavigateToProfile = onNavigateToProfile,
                         onNavigateToLogForm = onNavigateToLogForm
                     )
@@ -103,6 +110,8 @@ fun DashboardMahasiswaScreen(
 
                     SaldoChartSection(
                         currentSaldo = state.currentSaldo,
+                        totalViolations = state.totalViolations,
+                        nextSemesterAllowance = state.nextSemesterAllowance,
                         graphData = state.graphData,
                         selectedYear = state.selectedYear,
                         onYearChange = viewModel::changeYear
@@ -110,8 +119,57 @@ fun DashboardMahasiswaScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    TransactionHistorySection(state.transactionHistory)
+                    // UPDATE: Tambahkan Callback onSeeAllClick
+                    TransactionHistorySection(
+                        transactions = state.transactionHistory,
+                        onSeeAllClick = { showBottomSheet = true }
+                    )
                     Spacer(modifier = Modifier.height(30.dp))
+                }
+            }
+
+            // --- BOTTOM SHEET (FULL HISTORY) ---
+            if (showBottomSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showBottomSheet = false },
+                    sheetState = sheetState,
+                    containerColor = Color.White,
+                    tonalElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                    ) {
+                        // Header Bottom Sheet
+                        Text(
+                            text = "Semua Riwayat Pengeluaran",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Purple300,
+                            modifier = Modifier
+                                .padding(bottom = 16.dp)
+                                .align(Alignment.CenterHorizontally)
+                        )
+
+                        // LazyColumn untuk Scroll List Penuh
+                        LazyColumn(
+                            modifier = Modifier.fillMaxHeight(0.85f), // Tinggi Sheet 85% layar
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            contentPadding = PaddingValues(bottom = 20.dp)
+                        ) {
+                            if (state.transactionHistory.isEmpty()) {
+                                item {
+                                    Text("Belum ada data.", color = Color.Gray, modifier = Modifier.padding(20.dp))
+                                }
+                            } else {
+                                // Tampilkan SEMUA data tanpa batasan
+                                items(state.transactionHistory) { transaction ->
+                                    TransactionItem(transaction)
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -122,7 +180,7 @@ fun DashboardMahasiswaScreen(
 fun HeaderSection(
     userName: String,
     uid: String,
-    photoProfile: String, // <--- Parameter Baru (Wajib ada)
+    photoProfile: String,
     onNavigateToProfile: (String) -> Unit,
     onNavigateToLogForm: (String) -> Unit
 ) {
@@ -139,12 +197,10 @@ fun HeaderSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Left: Avatar + Welcome Text
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // --- LOGIKA FOTO PROFIL BARU ---
                 Box(
                     modifier = Modifier
                         .size(50.dp)
@@ -154,29 +210,24 @@ fun HeaderSection(
                     contentAlignment = Alignment.Center
                 ) {
                     if (photoProfile.isNotBlank()) {
-                        // Decode Base64 ke Bitmap
-                        val bitmap = com.example.kiptrack.ui.utils.ImageUtils.base64ToBitmap(photoProfile)
-
+                        val bitmap = ImageUtils.base64ToBitmap(photoProfile)
                         if (bitmap != null) {
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
                                 contentDescription = "Profile User",
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                contentScale = ContentScale.Crop
                             )
                         } else {
-                            // Fallback jika decode gagal
                             Text("🎓", fontSize = 28.sp)
                         }
                     } else {
-                        // Fallback jika belum ada foto
                         Text("🎓", fontSize = 28.sp)
                     }
                 }
 
                 Spacer(modifier = Modifier.width(14.dp))
 
-                // Welcome Text
                 Text(
                     buildAnnotatedString {
                         withStyle(style = SpanStyle(color = Purple300.copy(alpha = 0.8f), fontSize = 14.sp)) {
@@ -191,7 +242,6 @@ fun HeaderSection(
                 )
             }
 
-            // Right: Add Report Button
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -218,6 +268,8 @@ fun HeaderSection(
 @Composable
 fun SaldoChartSection(
     currentSaldo: Long,
+    totalViolations: Long,
+    nextSemesterAllowance: Long,
     graphData: List<Long>,
     selectedYear: Int,
     onYearChange: (Int) -> Unit
@@ -231,28 +283,73 @@ fun SaldoChartSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                text = "Saldo Uang Saku",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Purple300,
-                modifier = Modifier.padding(bottom = 4.dp)
+
+            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+                Text(
+                    text = "Saldo Uang Saku",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Purple300
+                )
+                Text(
+                    text = formatRupiah(currentSaldo),
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Purple300,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                )
+            }
+
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = Color.Gray.copy(alpha = 0.1f),
+                modifier = Modifier.padding(bottom = 12.dp)
             )
-            Text(
-                text = formatRupiah(currentSaldo),
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = Purple300,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(
+                        text = "Total Pelanggaran",
+                        fontSize = 11.sp,
+                        color = Color.Red.copy(alpha = 0.8f),
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = formatRupiah(totalViolations),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Red
+                    )
+                }
+
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "Sem. Depan",
+                        fontSize = 11.sp,
+                        color = Purple300,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = formatRupiah(nextSemesterAllowance),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Purple300
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
             ) {
-                IconButton(onClick = { onYearChange(-1) }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev Year", tint = Purple300)
+                IconButton(onClick = { onYearChange(-1) }, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev", tint = Purple300)
                 }
                 Text(
                     text = "$selectedYear",
@@ -261,8 +358,8 @@ fun SaldoChartSection(
                     color = Purple300,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
-                IconButton(onClick = { onYearChange(1) }) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next Year", tint = Purple300)
+                IconButton(onClick = { onYearChange(1) }, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next", tint = Purple300)
                 }
             }
 
@@ -321,7 +418,7 @@ fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
             if (previousPoint != null) {
                 drawLine(
                     color = Purple300,
-                    start = previousPoint,
+                    start = previousPoint!!,
                     end = currentPoint,
                     strokeWidth = 2.dp.toPx(),
                     cap = StrokeCap.Round
@@ -337,7 +434,10 @@ fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun TransactionHistorySection(transactions: List<Transaction>) {
+fun TransactionHistorySection(
+    transactions: List<Transaction>,
+    onSeeAllClick: () -> Unit // Parameter Baru: Callback saat klik lihat selengkapnya
+) {
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -362,9 +462,12 @@ fun TransactionHistorySection(transactions: List<Transaction>) {
                         text = "Belum ada transaksi",
                         fontSize = 12.sp,
                         color = Color.Gray,
-                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(20.dp)
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(20.dp)
                     )
                 } else {
+                    // Hanya Tampilkan 3 Teratas di Preview
                     transactions.take(3).forEach { transaction ->
                         TransactionItem(transaction)
                     }
@@ -373,10 +476,11 @@ fun TransactionHistorySection(transactions: List<Transaction>) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Tombol Lihat Selengkapnya (Clickable)
             Row(
-                modifier = Modifier.fillMaxWidth().clickable {
-                    // Navigate to full list screen
-                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onSeeAllClick() }, // Panggil Callback
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -398,20 +502,18 @@ fun TransactionHistorySection(transactions: List<Transaction>) {
 
 @Composable
 fun TransactionItem(transaction: Transaction) {
-    // 1. Tentukan Ikon dan Warna berdasarkan Status
     val iconVector = when {
         transaction.isApproved -> Icons.Outlined.CheckCircle
-        transaction.isRejected -> Icons.Default.Cancel // Silang Merah (Pastikan import Icons.Default.Cancel)
-        else -> Icons.Default.AccessTime // Ikon Jam untuk Pending (Pastikan import Icons.Default.AccessTime)
+        transaction.isRejected -> Icons.Filled.Cancel
+        else -> Icons.Filled.AccessTime // Atau Icons.Default.Warning jika mau
     }
 
     val iconColor = when {
         transaction.isApproved -> Color(0xFF00C853) // Hijau
         transaction.isRejected -> Color(0xFFFF5252) // Merah
-        else -> Color(0xFFFFA000) // Kuning/Orange (Pending)
+        else -> Color(0xFFFFA000) // Kuning (Pending)
     }
 
-    // 2. UI Row
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -421,7 +523,6 @@ fun TransactionItem(transaction: Transaction) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Kolom Kiri: Tanggal & Nominal
         Column {
             Text(
                 text = transaction.date.substringBefore("/"),
@@ -444,7 +545,6 @@ fun TransactionItem(transaction: Transaction) {
             )
         }
 
-        // Kolom Kanan: Deskripsi & Ikon Status
         Column(horizontalAlignment = Alignment.End) {
             Icon(
                 imageVector = iconVector,
@@ -460,9 +560,8 @@ fun TransactionItem(transaction: Transaction) {
                 color = Purple300,
                 fontWeight = FontWeight.Medium
             )
-            // Tambahkan Teks Status kecil (Opsional)
             Text(
-                text = transaction.status, // "MENUNGGU", "DISETUJUI", dll
+                text = transaction.status,
                 fontSize = 10.sp,
                 color = iconColor,
                 fontWeight = FontWeight.Light

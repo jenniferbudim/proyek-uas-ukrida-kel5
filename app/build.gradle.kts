@@ -96,6 +96,9 @@ dependencies {
     //Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
+    // Library untuk Crop Gambar
+    implementation("com.vanniktech:android-image-cropper:4.6.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

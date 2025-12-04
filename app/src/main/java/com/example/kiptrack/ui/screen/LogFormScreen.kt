@@ -4,7 +4,9 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -22,29 +25,64 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.ExpenseCategories
 import com.example.kiptrack.ui.theme.*
 import com.example.kiptrack.ui.utils.ImageUtils
+import com.example.kiptrack.ui.utils.NumberUtils
 import com.example.kiptrack.ui.viewmodel.LogFormViewModel
 import com.example.kiptrack.ui.viewmodel.LogFormViewModelFactory
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
-    // 1. Inisialisasi ViewModel
     val viewModel: LogFormViewModel = viewModel(
         factory = LogFormViewModelFactory(uid)
     )
     val state = viewModel.uiState
     val context = LocalContext.current
 
-    // 2. Logic Image Picker
+    // --- Date Picker Logic ---
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis()
+    )
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val selectedMillis = datePickerState.selectedDateMillis
+                        if (selectedMillis != null) {
+                            val formatter = SimpleDateFormat("MMM dd/yyyy", Locale.US)
+                            val formattedDate = formatter.format(Date(selectedMillis)).uppercase()
+                            viewModel.onDateChange(formattedDate)
+                        }
+                        showDatePicker = false
+                    }
+                ) { Text("OK", color = PurpleDark) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancel", color = PurpleDark) }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -56,15 +94,13 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
         }
     }
 
-    // 3. Observer: Jika Sukses Simpan -> Kembali
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
             Toast.makeText(context, "Laporan Berhasil Disimpan!", Toast.LENGTH_SHORT).show()
-            onBackClicked() // Kembali ke Dashboard
+            onBackClicked()
         }
     }
 
-    // Observer: Jika Error
     LaunchedEffect(state.errorMessage) {
         state.errorMessage?.let {
             Toast.makeText(context, it, Toast.LENGTH_LONG).show()
@@ -79,7 +115,7 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
             .fillMaxSize()
             .background(Purple50)
     ) {
-        // --- Header Section (Tetap sama) ---
+        // --- Header Section ---
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -93,9 +129,21 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
             ) {
                 Text("Total Saat Ini", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
-                // Note: Idealnya Total ini diambil dari User Data (DashboardViewModel),
-                // tapi sementara hardcode dulu sesuai desain sampai kita passing data saldo.
-                Text("Rp 8.000.000", color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold)
+                Text(
+                    text = NumberUtils.formatRupiah(state.totalCalculated),
+                    color = Color.White,
+                    fontSize = 38.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = state.totalSpelled,
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
             }
         }
 
@@ -129,14 +177,21 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
 
                     // 1. Tanggal Pengeluaran
                     FormLabelRef("Tanggal Pengeluaran :")
-                    CustomTextFieldRef(
-                        value = state.dateInput,
-                        onValueChange = viewModel::onDateChange,
-                        placeholder = "Contoh: JAN 26/2025" // Format yang disepakati untuk grafik
-                    )
+                    Box(modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true }) {
+                        CustomTextFieldRef(
+                            value = state.dateInput,
+                            onValueChange = {},
+                            placeholder = "Pilih Tanggal",
+                            readOnly = true,
+                            trailingIcon = {
+                                Icon(Icons.Default.CalendarToday, null, tint = PurpleDark)
+                            }
+                        )
+                        Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
+                    }
                     Spacer(Modifier.height(20.dp))
 
-                    // 2. Kategori (Dropdown)
+                    // 2. Kategori
                     FormLabelRef("Kategori Pengeluaran :")
                     ExposedDropdownMenuBox(
                         expanded = isExpanded,
@@ -231,14 +286,39 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                         colors = ButtonDefaults.buttonColors(containerColor = if (state.photoBase64.isNotBlank()) Purple100 else Color.White),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(vertical = 14.dp),
-                        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(12.dp))
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(2.dp, RoundedCornerShape(12.dp))
                     ) {
                         Icon(Icons.Filled.CloudUpload, null, tint = PurpleDark.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(12.dp))
                         Text(
                             text = if (state.photoBase64.isNotBlank()) "Foto Terpilih (Ganti?)" else "Pilih Foto dari Galeri",
-                            color = if (state.photoBase64.isNotBlank()) PurpleDark else Color.Gray.copy(alpha = 0.6f)
+                            color = if (state.photoBase64.isNotBlank()) PurpleDark else Color.Gray.copy(alpha = 0.6f),
+                            fontSize = 14.sp
                         )
+                    }
+
+                    // --- [BARU] PREVIEW GAMBAR ---
+                    if (state.photoBase64.isNotBlank()) {
+                        Spacer(Modifier.height(16.dp))
+                        val bitmap = ImageUtils.base64ToBitmap(state.photoBase64)
+                        if (bitmap != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp) // Tinggi Preview
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(1.dp, Purple100, RoundedCornerShape(12.dp))
+                            ) {
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = "Preview Bukti",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(40.dp))
@@ -259,7 +339,7 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                         }
 
                         Button(
-                            onClick = { viewModel.submitReport() }, // Submit Logic
+                            onClick = { viewModel.submitReport() },
                             colors = ButtonDefaults.buttonColors(containerColor = Purple200),
                             shape = RoundedCornerShape(50),
                             enabled = !state.isLoading,
@@ -280,7 +360,7 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
     }
 }
 
-// --- Helper Composables for the "Reference" Style ---
+// --- Helper Composables ---
 
 @Composable
 fun FormLabelRef(text: String) {
@@ -289,49 +369,37 @@ fun FormLabelRef(text: String) {
         fontSize = 13.sp,
         fontWeight = FontWeight.SemiBold,
         color = PurpleDark,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp)
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
     )
 }
 
-/**
- * Text Field styled to match Reference 3 (White box, no border, soft shadow)
- */
 @Composable
 fun CustomTextFieldRef(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    readOnly: Boolean = false,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
-    // We use a BasicTextField inside a decorated Box to get the exact look
-    // avoiding the forced styling of OutlinedTextField
-
     TextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = {
-            Text(
-                placeholder,
-                color = Color.Gray.copy(alpha = 0.5f),
-                fontSize = 14.sp
-            )
-        },
+        readOnly = readOnly,
+        placeholder = { Text(placeholder, color = Color.Gray.copy(alpha = 0.5f), fontSize = 14.sp) },
+        trailingIcon = trailingIcon,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = Color.White,
             unfocusedContainerColor = Color.White,
             disabledContainerColor = Color.White,
-            focusedIndicatorColor = Color.Transparent, // Hide line
-            unfocusedIndicatorColor = Color.Transparent, // Hide line
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
             disabledIndicatorColor = Color.Transparent
         ),
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(12.dp))
+        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(12.dp))
     )
 }
 
@@ -342,16 +410,9 @@ fun UploadReceiptButtonRef() {
         colors = ButtonDefaults.buttonColors(containerColor = Color.White),
         shape = RoundedCornerShape(12.dp),
         contentPadding = PaddingValues(vertical = 14.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(12.dp))
+        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(12.dp))
     ) {
-        Icon(
-            imageVector = Icons.Filled.CloudUpload,
-            contentDescription = "Upload",
-            tint = PurpleDark.copy(alpha = 0.7f),
-            modifier = Modifier.size(20.dp)
-        )
+        Icon(Icons.Filled.CloudUpload, null, tint = PurpleDark.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(12.dp))
         Text(
             "Pilih Foto dari Galeri",
@@ -359,6 +420,6 @@ fun UploadReceiptButtonRef() {
             fontWeight = FontWeight.Normal,
             fontSize = 14.sp
         )
-        Spacer(Modifier.weight(1f)) // Push text to left
+        Spacer(Modifier.weight(1f))
     }
 }

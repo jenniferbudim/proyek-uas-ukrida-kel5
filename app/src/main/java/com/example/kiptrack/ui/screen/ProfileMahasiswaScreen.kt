@@ -29,6 +29,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.canhub.cropper.CropImageContract
+import com.canhub.cropper.CropImageContractOptions
+import com.canhub.cropper.CropImageOptions
+import com.canhub.cropper.CropImageView
 import com.example.kiptrack.ui.theme.*
 import com.example.kiptrack.ui.utils.ImageUtils
 import com.example.kiptrack.ui.viewmodel.ProfileMahasiswaViewModel
@@ -44,21 +48,48 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
     val state = viewModel.uiState
     val context = LocalContext.current
 
-    // --- Image Picker Launcher ---
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            // Konversi Gambar ke Base64 lalu kirim ke ViewModel
-            val base64 = ImageUtils.uriToBase64(context, it)
-            if (base64 != null) {
-                viewModel.updateProfilePicture(base64)
+    // --- LOGIKA BARU: CROP IMAGE LAUNCHER ---
+    // Menggantikan launcher galeri biasa
+    val imageCropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
+        if (result.isSuccessful) {
+            val uriContent = result.uriContent
+            // Jika berhasil crop, ambil URI dan konversi ke Base64
+            if (uriContent != null) {
+                val base64 = ImageUtils.uriToBase64(context, uriContent)
+                if (base64 != null) {
+                    viewModel.updateProfilePicture(base64)
+                }
             }
+        } else {
+            println("Image Cropping error: ${result.error}")
         }
     }
 
+    // Fungsi helper untuk memulai crop dengan settingan BULAT
+    fun startCrop() {
+        val options = CropImageContractOptions(
+            uri = null, // null artinya user akan diminta pilih dari galeri dulu
+            cropImageOptions = CropImageOptions(
+                imageSourceIncludeGallery = true,
+                imageSourceIncludeCamera = true,
+                // Paksa crop berbentuk OVAL (Bulat)
+                cropShape = CropImageView.CropShape.OVAL,
+                // Paksa rasio 1:1
+                fixAspectRatio = true,
+                aspectRatioX = 1,
+                aspectRatioY = 1,
+                // Kompresi hasil crop
+                outputCompressFormat = android.graphics.Bitmap.CompressFormat.JPEG,
+                outputCompressQuality = 70,
+                outputRequestWidth = 500,
+                outputRequestHeight = 500
+            )
+        )
+        imageCropLauncher.launch(options)
+    }
+
     Scaffold(
-        containerColor = PurplePrimary,
+        containerColor = PurplePrimary, // Warna asli kode kamu
         topBar = {
             TopAppBar(
                 title = { Text("Profile Mahasiswa", color = Color.White, fontWeight = FontWeight.Bold) },
@@ -67,7 +98,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PurplePrimary)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PurplePrimary) // Warna asli
             )
         }
     ) { paddingValues ->
@@ -75,7 +106,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(PurplePrimary)
+                .background(PurplePrimary) // Warna asli
         ) {
             // --- HEADER (AVATAR & NAMA) ---
             Row(
@@ -86,17 +117,17 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
             ) {
                 // 1. CONTAINER UTAMA (Tanpa Clip, agar kamera tidak terpotong)
                 Box(
-                    modifier = Modifier.size(84.dp) // Sedikit lebih besar untuk ruang kamera
+                    modifier = Modifier.size(84.dp)
                 ) {
-                    // A. Lingkaran Foto Profil (Di-clip lingkaran di sini)
+                    // A. Lingkaran Foto Profil
                     Box(
                         modifier = Modifier
                             .size(80.dp)
-                            .align(Alignment.Center) // Posisi di tengah container
+                            .align(Alignment.Center)
                             .clip(CircleShape)
-                            .background(AvatarBackground)
+                            .background(AvatarBackground) // Warna asli
                             .border(2.dp, Color.White, CircleShape)
-                            .clickable { launcher.launch("image/*") },
+                            .clickable { startCrop() }, // <--- PANGGIL FUNGSI CROP DISINI
                         contentAlignment = Alignment.Center
                     ) {
                         if (state.studentData.fotoProfil.isNotBlank()) {
@@ -106,7 +137,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                                     bitmap = bitmap.asImageBitmap(),
                                     contentDescription = "Profile",
                                     modifier = Modifier.fillMaxSize(),
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                    contentScale = ContentScale.Crop
                                 )
                             } else {
                                 Icon(Icons.Default.Person, null, tint = PurplePrimary, modifier = Modifier.size(40.dp))
@@ -116,21 +147,21 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                         }
                     }
 
-                    // B. Ikon Kamera (Mengapung di Pojok Kanan Bawah Container Utama)
+                    // B. Ikon Kamera (Mengapung di Pojok Kanan Bawah)
                     Box(
                         modifier = Modifier
-                            .align(Alignment.BottomEnd) // Pojok kanan bawah
-                            .offset(x = (-2).dp, y = (-2).dp) // Geser sedikit agar pas
+                            .align(Alignment.BottomEnd)
+                            .offset(x = (-2).dp, y = (-2).dp)
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(Color.White) // Background putih biar kontras
+                            .background(Color.White)
                             .border(1.dp, AvatarBackground, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.CameraAlt,
                             contentDescription = "Edit Foto",
-                            tint = Purple300,
+                            tint = Purple300, // Warna asli
                             modifier = Modifier.size(16.dp)
                         )
                     }
@@ -181,7 +212,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                         Button(
                             onClick = onLogoutClicked,
                             modifier = Modifier.fillMaxWidth(0.5f).height(48.dp).align(Alignment.CenterHorizontally),
-                            colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                            colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary), // Warna asli
                             shape = RoundedCornerShape(50)
                         ) {
                             Text("Keluar", color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -199,7 +230,7 @@ fun ProfileDetailFieldStandard(label: String, value: String) {
         Text(
             text = label,
             fontSize = 13.sp,
-            color = Purple300, // Pastikan ini terimport dari Theme
+            color = Purple300, // Warna asli
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
         )
@@ -207,13 +238,13 @@ fun ProfileDetailFieldStandard(label: String, value: String) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(Purple50) // Pastikan ini terimport
+                .background(Purple50) // Warna asli
                 .padding(vertical = 14.dp, horizontal = 16.dp)
         ) {
             Text(
                 text = value,
                 fontSize = 16.sp,
-                color = PurpleTextDeep, // Pastikan ini terimport
+                color = PurpleTextDeep, // Warna asli
                 fontWeight = FontWeight.SemiBold
             )
         }

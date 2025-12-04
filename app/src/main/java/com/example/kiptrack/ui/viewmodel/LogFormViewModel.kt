@@ -6,23 +6,30 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.kiptrack.ui.utils.NumberUtils
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
-// State untuk Form UI
+// State Updated
 data class LogFormUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val errorMessage: String? = null,
 
-    // Field Input
-    val dateInput: String = "",
+    // Default diisi tanggal hari ini
+    val dateInput: String = SimpleDateFormat("MMM dd/yyyy", Locale.US).format(Date()).uppercase(),
     val description: String = "",
     val quantity: String = "",
     val unitPrice: String = "",
     val category: String? = null,
-    val photoBase64: String = ""
+    val photoBase64: String = "",
+
+    val totalCalculated: Long = 0L,
+    val totalSpelled: String = "Nol Rupiah"
 )
 
 class LogFormViewModel(private val uid: String) : ViewModel() {
@@ -31,17 +38,37 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
 
     private val db = FirebaseFirestore.getInstance()
 
-    // Fungsi Update State dari UI
     fun onDateChange(value: String) { uiState = uiState.copy(dateInput = value) }
     fun onDescriptionChange(value: String) { uiState = uiState.copy(description = value) }
-    fun onQuantityChange(value: String) { uiState = uiState.copy(quantity = value) }
-    fun onUnitPriceChange(value: String) { uiState = uiState.copy(unitPrice = value) }
     fun onCategoryChange(value: String) { uiState = uiState.copy(category = value) }
     fun onPhotoSelected(base64: String) { uiState = uiState.copy(photoBase64 = base64) }
 
-    // Fungsi Simpan Laporan
+    fun onQuantityChange(value: String) {
+        if (value.all { it.isDigit() }) {
+            uiState = uiState.copy(quantity = value)
+            recalculateTotal()
+        }
+    }
+
+    fun onUnitPriceChange(value: String) {
+        if (value.all { it.isDigit() }) {
+            uiState = uiState.copy(unitPrice = value)
+            recalculateTotal()
+        }
+    }
+
+    private fun recalculateTotal() {
+        val qty = uiState.quantity.toLongOrNull() ?: 0L
+        val price = uiState.unitPrice.toLongOrNull() ?: 0L
+        val total = qty * price
+
+        uiState = uiState.copy(
+            totalCalculated = total,
+            totalSpelled = NumberUtils.terbilang(total)
+        )
+    }
+
     fun submitReport() = viewModelScope.launch {
-        // 1. Validasi Input
         if (uiState.dateInput.isBlank() || uiState.description.isBlank() ||
             uiState.quantity.isBlank() || uiState.unitPrice.isBlank() ||
             uiState.category == null) {
@@ -52,12 +79,10 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
         uiState = uiState.copy(isLoading = true, errorMessage = null)
 
         try {
-            // 2. Hitung Nominal Total
+            val totalNominal = uiState.totalCalculated
             val qty = uiState.quantity.toIntOrNull() ?: 1
             val price = uiState.unitPrice.toLongOrNull() ?: 0L
-            val totalNominal = qty * price
 
-            // 3. Siapkan Data Map untuk Firestore
             val reportData = hashMapOf(
                 "tanggal" to uiState.dateInput,
                 "deskripsi" to uiState.description,
@@ -66,16 +91,29 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
                 "harga_satuan" to price,
                 "nominal" to totalNominal,
                 "bukti_base64" to uiState.photoBase64,
-                "status" to "MENUNGGU" // <-- STATUS AWAL PENDING
+                "status" to "MENUNGGU",
+                "created_at" to System.currentTimeMillis()
             )
 
-            // 4. Kirim ke Sub-Collection
-            db.collection("users").document(uid)
-                .collection("laporan_keuangan")
-                .add(reportData)
-                .await()
+            // --- TRANSACTION: SIMPAN LAPORAN + POTONG SALDO ---
+            db.runTransaction { transaction ->
+                val userRef = db.collection("users").document(uid)
+                val reportRef = userRef.collection("laporan_keuangan").document() // Auto ID
 
-            // Sukses!
+                // 1. Ambil Saldo Saat Ini
+                val snapshot = transaction.get(userRef)
+                val currentSaldo = snapshot.getLong("saldo_saat_ini") ?: 0L
+
+                // 2. Hitung Saldo Baru
+                val newSaldo = currentSaldo - totalNominal
+
+                // 3. Update Saldo User
+                transaction.update(userRef, "saldo_saat_ini", newSaldo)
+
+                // 4. Simpan Laporan
+                transaction.set(reportRef, reportData)
+            }.await()
+
             uiState = uiState.copy(isLoading = false, isSuccess = true)
 
         } catch (e: Exception) {
@@ -84,7 +122,6 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
     }
 }
 
-// Factory
 class LogFormViewModelFactory(private val uid: String) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
