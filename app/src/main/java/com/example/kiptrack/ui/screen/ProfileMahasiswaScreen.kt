@@ -1,7 +1,12 @@
 package com.example.kiptrack.ui.screen
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -9,169 +14,179 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.kiptrack.ui.data.UserMahasiswa
-import com.example.kiptrack.ui.theme.RefAvatarBg
-import com.example.kiptrack.ui.theme.RefAvatarIcon
-import com.example.kiptrack.ui.theme.RefHeaderPurple
-import com.example.kiptrack.ui.theme.RefInputBackground
-import com.example.kiptrack.ui.theme.RefLabelColor
-import com.example.kiptrack.ui.theme.RefTextPurple
-
-@Composable
-fun ProfileAvatarFixed(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(80.dp) // Slightly smaller to fit the fixed header nicely
-            .clip(CircleShape)
-            .background(RefAvatarBg)
-            .border(2.dp, Color.White, CircleShape), // Added white border for contrast
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Person,
-            contentDescription = "Avatar",
-            tint = RefAvatarIcon,
-            modifier = Modifier.size(50.dp)
-        )
-    }
-}
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.kiptrack.ui.theme.*
+import com.example.kiptrack.ui.utils.ImageUtils
+import com.example.kiptrack.ui.viewmodel.ProfileMahasiswaViewModel
+import com.example.kiptrack.ui.viewmodel.ProfileMahasiswaViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClicked: () -> Unit) {
-    // --- Mock Data ---
-    val studentData = remember(uid) {
-        UserMahasiswa(
-            uid = uid,
-            nim = "202300259",
-            nama = "Blessy Jeniffer",
-            university = "Universitas Kristen Krida Wacana",
-            programStudi = "Informatika",
-            jenjang = "Sarjana (S1)",
-            semesterBerjalan = "Semester 6",
-            namaWali = "Ayu Perry"
-        )
+    // Init ViewModel
+    val viewModel: ProfileMahasiswaViewModel = viewModel(
+        factory = ProfileMahasiswaViewModelFactory(uid)
+    )
+    val state = viewModel.uiState
+    val context = LocalContext.current
+
+    // --- Image Picker Launcher ---
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            // Konversi Gambar ke Base64 lalu kirim ke ViewModel
+            val base64 = ImageUtils.uriToBase64(context, it)
+            if (base64 != null) {
+                viewModel.updateProfilePicture(base64)
+            }
+        }
     }
 
     Scaffold(
         containerColor = RefHeaderPurple,
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "Profile Mahasiswa",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp
-                    )
-                },
+                title = { Text("Profile Mahasiswa", color = Color.White, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClicked) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = RefHeaderPurple)
             )
         }
     ) { paddingValues ->
-
-        // Main Container (Purple Background)
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .background(RefHeaderPurple)
         ) {
-
-            // --- FIXED HEADER SECTION ---
-            // Profile Picture and Name side-by-side, fixed in place.
+            // --- HEADER (AVATAR & NAMA) ---
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, end = 24.dp, top = 10.dp, bottom = 24.dp),
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                ProfileAvatarFixed()
+                // 1. CONTAINER UTAMA (Tanpa Clip, agar kamera tidak terpotong)
+                Box(
+                    modifier = Modifier.size(84.dp) // Sedikit lebih besar untuk ruang kamera
+                ) {
+                    // A. Lingkaran Foto Profil (Di-clip lingkaran di sini)
+                    Box(
+                        modifier = Modifier
+                            .size(80.dp)
+                            .align(Alignment.Center) // Posisi di tengah container
+                            .clip(CircleShape)
+                            .background(RefAvatarBg)
+                            .border(2.dp, Color.White, CircleShape)
+                            .clickable { launcher.launch("image/*") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (state.studentData.fotoProfil.isNotBlank()) {
+                            val bitmap = com.example.kiptrack.ui.utils.ImageUtils.base64ToBitmap(state.studentData.fotoProfil)
+                            if (bitmap != null) {
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = "Profile",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            } else {
+                                Icon(Icons.Default.Person, null, tint = RefAvatarIcon, modifier = Modifier.size(40.dp))
+                            }
+                        } else {
+                            Icon(Icons.Default.Person, null, tint = RefAvatarIcon, modifier = Modifier.size(40.dp))
+                        }
+                    }
+
+                    // B. Ikon Kamera (Mengapung di Pojok Kanan Bawah Container Utama)
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd) // Pojok kanan bawah
+                            .offset(x = (-2).dp, y = (-2).dp) // Geser sedikit agar pas
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Color.White) // Background putih biar kontras
+                            .border(1.dp, RefAvatarBg, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Edit Foto",
+                            tint = DeepPurple,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.width(20.dp))
 
-                // Name text (White to contrast with purple header)
-                Text(
-                    text = studentData.nama,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                // Nama & NIM
+                Column {
+                    Text(
+                        text = if (state.isLoading) "Memuat..." else state.studentData.nama,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Text(
+                        text = if (state.isLoading) "..." else state.studentData.nim,
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.8f)
+                    )
+                }
             }
 
-            // --- SCROLLABLE FIELDS SECTION ---
-            // White card with purple peaking out (margin)
+            // --- DATA DETAIL ---
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f) // Takes up all remaining space
-                    .padding(start = 20.dp, end = 20.dp, bottom = 20.dp), // Purple peaks out here
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp, vertical = 10.dp),
                 shape = RoundedCornerShape(24.dp),
                 color = Color.White,
                 shadowElevation = 4.dp
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp)
-                        .verticalScroll(rememberScrollState()), // Only this part scrolls
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-
-                    ProfileDetailFieldStandard(label = "Nomor Induk Mahasiswa", value = studentData.nim)
-                    Spacer(Modifier.height(16.dp))
-
-                    ProfileDetailFieldStandard(label = "Universitas", value = studentData.university)
-                    Spacer(Modifier.height(16.dp))
-
-                    ProfileDetailFieldStandard(label = "Program Studi", value = studentData.programStudi)
-                    Spacer(Modifier.height(16.dp))
-
-                    ProfileDetailFieldStandard(label = "Jenjang", value = studentData.jenjang)
-                    Spacer(Modifier.height(16.dp))
-
-                    ProfileDetailFieldStandard(label = "Semester Saat Ini", value = studentData.semesterBerjalan)
-                    Spacer(Modifier.height(16.dp))
-
-                    ProfileDetailFieldStandard(label = "Nama Wali", value = studentData.namaWali)
-
-                    Spacer(Modifier.height(32.dp))
-
-                    // Logout Button
-                    // Less wide as requested (50% of card width)
-                    Button(
-                        onClick = onLogoutClicked,
-                        modifier = Modifier
-                            .fillMaxWidth(0.5f)
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = RefHeaderPurple),
-                        shape = RoundedCornerShape(50) // Pill shape
+                if (state.isLoading) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = DeepPurple) }
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())
                     ) {
-                        Text("Keluar", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    }
+                        ProfileDetailFieldStandard("Universitas", state.studentData.universityName)
+                        Spacer(Modifier.height(16.dp))
+                        ProfileDetailFieldStandard("Program Studi", state.studentData.programStudiName)
+                        Spacer(Modifier.height(16.dp))
+                        ProfileDetailFieldStandard("Jenjang", state.studentData.jenjang)
+                        Spacer(Modifier.height(16.dp))
+                        ProfileDetailFieldStandard("Semester Saat Ini", state.studentData.semesterBerjalan)
+                        Spacer(Modifier.height(16.dp))
+                        ProfileDetailFieldStandard("Nama Wali", state.studentData.namaWali)
 
-                    Spacer(Modifier.height(16.dp))
+                        Spacer(Modifier.height(32.dp))
+                        Button(
+                            onClick = onLogoutClicked,
+                            modifier = Modifier.fillMaxWidth(0.5f).height(48.dp).align(Alignment.CenterHorizontally),
+                            colors = ButtonDefaults.buttonColors(containerColor = RefHeaderPurple),
+                            shape = RoundedCornerShape(50)
+                        ) {
+                            Text("Keluar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
             }
         }
@@ -184,7 +199,7 @@ fun ProfileDetailFieldStandard(label: String, value: String) {
         Text(
             text = label,
             fontSize = 13.sp,
-            color = RefLabelColor,
+            color = RefLabelColor, // Pastikan ini terimport dari Theme
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
         )
@@ -192,13 +207,13 @@ fun ProfileDetailFieldStandard(label: String, value: String) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(RefInputBackground)
+                .background(RefInputBackground) // Pastikan ini terimport
                 .padding(vertical = 14.dp, horizontal = 16.dp)
         ) {
             Text(
                 text = value,
                 fontSize = 16.sp,
-                color = RefTextPurple,
+                color = RefTextPurple, // Pastikan ini terimport
                 fontWeight = FontWeight.SemiBold
             )
         }

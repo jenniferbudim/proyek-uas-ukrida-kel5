@@ -1,6 +1,7 @@
 package com.example.kiptrack.ui.screen
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -90,6 +92,7 @@ fun DashboardMahasiswaScreen(
                     HeaderSection(
                         userName = state.userName,
                         uid = uid,
+                        photoProfile = state.photoProfile, // Pass dari state
                         onNavigateToProfile = onNavigateToProfile,
                         onNavigateToLogForm = onNavigateToLogForm
                     )
@@ -117,6 +120,7 @@ fun DashboardMahasiswaScreen(
 fun HeaderSection(
     userName: String,
     uid: String,
+    photoProfile: String, // <--- Parameter Baru (Wajib ada)
     onNavigateToProfile: (String) -> Unit,
     onNavigateToLogForm: (String) -> Unit
 ) {
@@ -138,12 +142,35 @@ fun HeaderSection(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Avatar
-                AsyncImageMock(
+                // --- LOGIKA FOTO PROFIL BARU ---
+                Box(
                     modifier = Modifier
                         .size(50.dp)
-                        .clickable { onNavigateToProfile(uid) }
-                )
+                        .clip(CircleShape)
+                        .background(Color(0xFFE0E0E0))
+                        .clickable { onNavigateToProfile(uid) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (photoProfile.isNotBlank()) {
+                        // Decode Base64 ke Bitmap
+                        val bitmap = com.example.kiptrack.ui.utils.ImageUtils.base64ToBitmap(photoProfile)
+
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Profile User",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        } else {
+                            // Fallback jika decode gagal
+                            Text("🎓", fontSize = 28.sp)
+                        }
+                    } else {
+                        // Fallback jika belum ada foto
+                        Text("🎓", fontSize = 28.sp)
+                    }
+                }
 
                 Spacer(modifier = Modifier.width(14.dp))
 

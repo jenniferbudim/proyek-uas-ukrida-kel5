@@ -18,6 +18,7 @@ data class DashboardMahasiswaUiState(
     val errorMessage: String? = null,
     val userName: String = "Loading...",
     val currentSaldo: Long = 0L,
+    val photoProfile: String = "",
 
     // Data Grafik: List 12 Angka (Jan-Des)
     val graphData: List<Long> = List(12) { 0L },
@@ -54,12 +55,21 @@ class DashboardMahasiswaViewModel(private val uid: String) : ViewModel() {
     private fun setupRealtimeListeners() {
         uiState = uiState.copy(isLoading = true)
 
-        // 1. LISTEN USER
+        // 1. LISTEN USER (Profil, Saldo, & Foto)
         userListener = db.collection("users").document(uid).addSnapshotListener { snapshot, _ ->
             if (snapshot != null && snapshot.exists()) {
                 val nama = snapshot.getString("nama") ?: "Mahasiswa"
                 val saldo = snapshot.getLong("saldo_saat_ini") ?: 0L
-                uiState = uiState.copy(userName = nama, currentSaldo = saldo)
+
+                // --- TAMBAHAN BARU: AMBIL FOTO ---
+                val foto = snapshot.getString("foto_profil") ?: ""
+
+                // Update State (Nama, Saldo, dan Foto)
+                uiState = uiState.copy(
+                    userName = nama,
+                    currentSaldo = saldo,
+                    photoProfile = foto // Masukkan ke UI State
+                )
             }
         }
 
