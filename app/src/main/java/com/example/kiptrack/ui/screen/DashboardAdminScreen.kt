@@ -85,7 +85,7 @@ fun DashboardAdminScreen(
                 Icon(
                     imageVector = Icons.Outlined.ExitToApp,
                     contentDescription = "Logout",
-                    tint = Purple200,
+                    tint = Purple50,
                     modifier = Modifier
                         .size(28.dp)
                         .align(Alignment.CenterStart)
@@ -93,7 +93,7 @@ fun DashboardAdminScreen(
                 )
                 Text(
                     text = buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = Purple200.copy(alpha = 0.6f))) { append("Hello, ") }
+                        withStyle(style = SpanStyle(color = Purple50.copy(alpha = 0.6f))) { append("Hello, ") }
                         withStyle(style = SpanStyle(color = Color(0xFF8E24AA), fontWeight = FontWeight.Bold)) { append(state.username); append("!") }
                     },
                     fontSize = 18.sp,

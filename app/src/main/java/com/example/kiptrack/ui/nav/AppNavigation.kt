@@ -16,6 +16,7 @@ import com.example.kiptrack.ui.screen.ListMahasiswaProdiScreen
 import com.example.kiptrack.ui.screen.ListUniversitasScreen
 import com.example.kiptrack.ui.screen.LogFormScreen
 import com.example.kiptrack.ui.screen.LoginScreen
+import com.example.kiptrack.ui.screen.ProfilMahasiswaAdminScreen
 import com.example.kiptrack.ui.screen.ProfileMahasiswaScreen
 
 @Composable
@@ -91,7 +92,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             DashboardWaliScreen(uid = uid)
         }
 
-        // --- 4. ADMIN FLOW (PERBAIKAN UTAMA DI SINI) ---
+        // --- 4. ADMIN FLOW ---
 
         // A. Dashboard Admin
         composable(
@@ -101,7 +102,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             val uid = backStackEntry.arguments?.getString("uid") ?: ""
             DashboardAdminScreen(
                 uid = uid,
-                // Mengirim ID Universitas (cth: "univ_ukrida") ke layar berikutnya
                 onNavigateToListUniversitas = { adminUid, universityId ->
                     navController.navigate("universitas_list/$adminUid/$universityId")
                 },
@@ -113,8 +113,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // B. List Universitas (Menampilkan Daftar Prodi)
-        // Menerima universityId agar bisa fetch sub-collection prodi
+        // B. List Universitas
         composable(
             route = "universitas_list/{uid}/{universityId}",
             arguments = listOf(
@@ -128,7 +127,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             ListUniversitasScreen(
                 uid = uid,
                 universityId = uniId,
-                // Mengirim UnivID dan ProdiID untuk filter mahasiswa nanti
                 onNavigateToListMahasiswa = { currentUid, prodiId ->
                     navController.navigate("mahasiswa_list/$currentUid/$uniId/$prodiId")
                 },
@@ -136,8 +134,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // C. List Mahasiswa (Berdasarkan Prodi & Universitas)
-        // Menerima UniversityID & ProdiID untuk Query ke collection 'users'
+        // C. List Mahasiswa
         composable(
             route = "mahasiswa_list/{uid}/{universityId}/{prodiId}",
             arguments = listOf(
@@ -152,8 +149,8 @@ fun AppNavigation(modifier: Modifier = Modifier) {
 
             ListMahasiswaProdiScreen(
                 uid = uid,
-                universityId = uniId, // Parameter yang sebelumnya merah/missing
-                prodiId = prodiId,    // Parameter yang sebelumnya merah/missing
+                universityId = uniId,
+                prodiId = prodiId,
                 onNavigateToDetailMahasiswa = { currentUid, studentUid ->
                     navController.navigate("mahasiswa_detail/$currentUid/$studentUid")
                 },
@@ -161,8 +158,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         }
 
-        // D. Detail Mahasiswa (Charts & History)
-        // Menerima studentUid (UID Mahasiswa target)
+        // D. Detail Mahasiswa (Admin View)
         composable(
             route = "mahasiswa_detail/{uid}/{studentUid}",
             arguments = listOf(
@@ -176,7 +172,27 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             DetailMahasiswaScreen(
                 uid = uid, // UID Admin
                 studentUid = studentUid, // UID Mahasiswa yang dilihat
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                // --- FIXED: Using the admin specific callback ---
+                onNavigateToProfileAdmin = { targetStudentUid ->
+                    navController.navigate("profile_mahasiswa_admin/$targetStudentUid")
+                }
+            )
+        }
+
+        // E. Profile Mahasiswa (Admin View)
+        composable(
+            route = "profile_mahasiswa_admin/{studentUid}",
+            arguments = listOf(
+                navArgument("studentUid") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val studentUid = backStackEntry.arguments?.getString("studentUid") ?: ""
+
+            // Use the specific Admin Profile screen with correct parameters
+            ProfilMahasiswaAdminScreen(
+                uid = studentUid,
+                onBackClicked = { navController.popBackStack() }
             )
         }
     }

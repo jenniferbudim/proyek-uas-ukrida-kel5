@@ -11,7 +11,8 @@ data class Transaction(
     val status: String = "", // "MENUNGGU", "DISETUJUI", "DITOLAK"
     val quantity: Int = 1,
     val unitPrice: Long = 0L,
-    val proofImage: String = ""
+    val proofImage: String = "",
+    val category: String = "Lainnya"
 ) {
     // Helper untuk menentukan status
     val isApproved: Boolean get() = status == "DISETUJUI"

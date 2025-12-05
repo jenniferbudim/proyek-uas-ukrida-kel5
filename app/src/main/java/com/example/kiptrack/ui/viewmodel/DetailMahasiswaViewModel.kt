@@ -133,7 +133,8 @@ class DetailMahasiswaViewModel(
                     status = status,
                     quantity = (data["kuantitas"] as? Number)?.toInt() ?: 1,
                     unitPrice = (data["harga_satuan"] as? Number)?.toLong() ?: 0L,
-                    proofImage = data["bukti_base64"] as? String ?: ""
+                    proofImage = data["bukti_base64"] as? String ?: "",
+                    category = categoryName
                 )
             }
 
