@@ -3,6 +3,7 @@ package com.example.kiptrack.ui.viewmodel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -16,26 +17,27 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
-// State untuk Detail Mahasiswa
 data class DetailMahasiswaUiState(
     val isLoading: Boolean = true,
     val name: String = "Loading...",
     val saldo: Long = 0L,
     val photoProfile: String = "",
 
-    // Statistik
-    val totalPengeluaran: Long = 0L,
-    val totalPelanggaran: Long = 0L,
-    val transactionList: List<Transaction> = emptyList(),
+    val totalPengeluaranAllTime: Long = 0L,
+    val totalPelanggaranAllTime: Long = 0L,
 
-    // Data Grafik
+    val pelanggaranSemesterIni: Long = 0L,
+    val estimasiPendapatanDepan: Long = 0L,
+
+    val transactionList: List<Transaction> = emptyList(),
     val graphData: List<Long> = List(12) { 0L },
     val categoryData: List<CategorySummary> = emptyList(),
 
-    // Transaksi yang sedang dipilih untuk di-review (Tab Perincian/Konfirmasi)
-    val selectedTransaction: Transaction? = null
+    val selectedTransaction: Transaction? = null,
+    val selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR)
 )
 
 class DetailMahasiswaViewModel(
@@ -47,36 +49,64 @@ class DetailMahasiswaViewModel(
         private set
 
     private val db = FirebaseFirestore.getInstance()
+    private var allTransactionsCache: List<Transaction> = emptyList()
+    private var currentClusterNominal: Long = 0L
 
     init {
-        fetchStudentData()
+        fetchFullStudentData()
         fetchTransactions()
     }
 
-    // 1. Ambil Data Diri Mahasiswa
-    private fun fetchStudentData() = viewModelScope.launch {
-        try {
-            val doc = db.collection("users").document(studentUid).get().await()
-            if (doc.exists()) {
-                val nama = doc.getString("nama") ?: "Mahasiswa"
-                val saldo = doc.getLong("saldo_saat_ini") ?: 0L
-                val foto = doc.getString("foto_profil") ?: ""
-                val pelanggaran = doc.getLong("total_penyalahgunaan") ?: 0L
+    fun nextYear() {
+        uiState = uiState.copy(selectedYear = uiState.selectedYear + 1)
+        processGraphAndListByYear()
+    }
 
-                uiState = uiState.copy(
-                    name = nama,
-                    saldo = saldo,
-                    photoProfile = foto,
-                    totalPelanggaran = pelanggaran
-                )
+    fun previousYear() {
+        uiState = uiState.copy(selectedYear = uiState.selectedYear - 1)
+        processGraphAndListByYear()
+    }
+
+    fun selectTransaction(trx: Transaction) {
+        uiState = uiState.copy(selectedTransaction = trx)
+    }
+
+    // --- 1. FETCH DATA MAHASISWA ---
+    private fun fetchFullStudentData() = viewModelScope.launch {
+        try {
+            val docUser = db.collection("users").document(studentUid).get().await()
+            if (!docUser.exists()) return@launch
+
+            val dataUser = docUser.data ?: emptyMap()
+            val idUniv = dataUser["id_universitas"] as? String ?: ""
+            val idProdi = dataUser["id_prodi"] as? String ?: ""
+
+            uiState = uiState.copy(
+                name = dataUser["nama"] as? String ?: "Mahasiswa",
+                saldo = (dataUser["saldo_saat_ini"] as? Number)?.toLong() ?: 0L,
+                photoProfile = dataUser["foto_profil"] as? String ?: "",
+                totalPelanggaranAllTime = (dataUser["total_penyalahgunaan"] as? Number)?.toLong() ?: 0L
+            )
+
+            if (idUniv.isNotBlank()) {
+                val docUniv = db.collection("universitas").document(idUniv).get().await()
+                val clusterVal = docUniv.get("wilayah_klaster")?.toString() ?: "1"
+                val isKedokteran = idProdi.contains("kedokteran", ignoreCase = true) && !idProdi.contains("non", ignoreCase = true)
+                val configDocId = if (isKedokteran) "aturan_biaya_hidup_kedokteran" else "aturan_biaya_hidup_non-kedokteran"
+                val docConfig = db.collection("konfigurasi").document(configDocId).get().await()
+                val nominalBantuan = docConfig.getLong("klaster_$clusterVal") ?: 0L
+
+                currentClusterNominal = nominalBantuan
+                recalculateEstimation()
             }
         } catch (e: Exception) {
             println("Error fetch student: ${e.message}")
         }
     }
 
-    // 2. Ambil Riwayat Transaksi & Hitung Statistik
+    // --- 2. FETCH TRANSAKSI ---
     private fun fetchTransactions() = viewModelScope.launch {
+        uiState = uiState.copy(isLoading = true)
         try {
             val snapshot = db.collection("users").document(studentUid)
                 .collection("laporan_keuangan")
@@ -84,105 +114,180 @@ class DetailMahasiswaViewModel(
                 .get()
                 .await()
 
+            // Map untuk menampung Total Uang per Kategori
+            val categoryAmountMap = mutableMapOf<String, Long>()
+
             val list = snapshot.documents.map { doc ->
+                val data = doc.data ?: emptyMap()
+                val amount = (data["nominal"] as? Number)?.toLong() ?: 0L
+                val status = data["status"] as? String ?: "MENUNGGU"
+                val categoryName = data["kategori"] as? String ?: "Lainnya"
+
+                // --- PERBAIKAN LOGIKA PIE CHART DI SINI ---
+                // SEMUA transaksi (Menunggu/Disetujui/Ditolak) dihitung ke kategori
+                val currentTotal = categoryAmountMap[categoryName] ?: 0L
+                categoryAmountMap[categoryName] = currentTotal + amount
+
                 Transaction(
                     id = doc.id,
-                    date = doc.getString("tanggal") ?: "",
-                    amount = doc.getLong("nominal") ?: 0L,
-                    description = doc.getString("deskripsi") ?: "",
-                    status = doc.getString("status") ?: "MENUNGGU",
-                    quantity = doc.getLong("kuantitas")?.toInt() ?: 1,
-                    unitPrice = doc.getLong("harga_satuan") ?: 0L,
-                    proofImage = doc.getString("bukti_base64") ?: "",
-                    // category field needed for pie chart
-                    // Asumsikan di Transaction.kt ada field 'category', kalau belum ada, abaikan dulu logic pie chart
+                    date = data["tanggal"] as? String ?: "",
+                    description = data["deskripsi"] as? String ?: "",
+                    amount = amount,
+                    status = status,
+                    quantity = (data["kuantitas"] as? Number)?.toInt() ?: 1,
+                    unitPrice = (data["harga_satuan"] as? Number)?.toLong() ?: 0L,
+                    proofImage = data["bukti_base64"] as? String ?: ""
                 )
             }
 
-            // Hitung Total Pengeluaran
+            allTransactionsCache = list
+
+            // Total Pengeluaran (Semua Status)
             val totalSpent = list.sumOf { it.amount }
+            // Total Pelanggaran (Hanya DITOLAK)
+            val totalViolations = list.filter { it.status == "DITOLAK" }.sumOf { it.amount }
 
-            // Generate Grafik Line (Bulanan)
-            val graph = generateGraphData(list)
+            calculateCurrentSemesterStats(list)
 
-            // Generate Pie Chart (Dummy category logic for now or real if data exists)
-            val pieData = listOf(
-                CategorySummary("Makanan", 50f, PieRed),
-                CategorySummary("Transport", 30f, PieGreen),
-                CategorySummary("Lainnya", 20f, PieOrange)
-            )
+            // Generate Pie Data
+            val pieData = generatePieDataBasedOnPrice(categoryAmountMap)
 
             uiState = uiState.copy(
                 isLoading = false,
-                transactionList = list,
-                totalPengeluaran = totalSpent,
-                graphData = graph,
-                categoryData = pieData,
-                // Default select transaksi pertama jika ada
-                selectedTransaction = list.firstOrNull()
+                totalPengeluaranAllTime = totalSpent,
+                totalPelanggaranAllTime = totalViolations,
+                selectedTransaction = list.firstOrNull(),
+                categoryData = pieData
             )
+
+            processGraphAndListByYear()
 
         } catch (e: Exception) {
             uiState = uiState.copy(isLoading = false)
         }
     }
 
-    // Helper Grafik
-    private fun generateGraphData(list: List<Transaction>): List<Long> {
-        val monthlyTotals = MutableList(12) { 0L }
+    // --- HELPER: GENERATE PIE DATA ---
+    private fun generatePieDataBasedOnPrice(categoryMap: Map<String, Long>): List<CategorySummary> {
+        // Hitung Total Uang (Semua Status)
+        val totalAmount = categoryMap.values.sum().toFloat()
+
+        // Warna Kategori
+        fun getColorForCategory(cat: String): Color {
+            return when(cat) {
+                "Makanan & Minuman" -> PieRed
+                "Transportasi" -> PieGreen
+                "Sandang" -> PieOrange
+                "Hunian" -> Color(0xFF5C6BC0) // Indigo
+                "Pendidikan" -> Color(0xFFAB47BC) // Purple
+                "Kesehatan" -> Color(0xFFEF5350) // Light Red
+                else -> Color.Gray
+            }
+        }
+
+        return categoryMap.map { (categoryName, amount) ->
+            val percentage = if (totalAmount > 0) {
+                (amount / totalAmount) * 100f
+            } else 0f
+
+            CategorySummary(
+                name = categoryName,
+                percentage = percentage,
+                color = getColorForCategory(categoryName)
+            )
+        }.sortedByDescending { it.percentage }
+    }
+
+    private fun calculateCurrentSemesterStats(allTrx: List<Transaction>) {
+        val calendar = Calendar.getInstance()
+        val currentYear = calendar.get(Calendar.YEAR)
+        val currentMonth = calendar.get(Calendar.MONTH)
+        val isSemesterGenap = currentMonth <= 5
         val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
-        list.forEach { trx ->
+        var violationSemesterIni = 0L
+
+        allTrx.filter { it.status == "DITOLAK" }.forEach { trx ->
             try {
                 val date = dateFormat.parse(trx.date)
                 if (date != null) {
-                    // Sederhana: Abaikan tahun, masukkan ke bulan (0-11)
-                    val month = date.month // Deprecated but easy for index
-                    monthlyTotals[month] += trx.amount
+                    calendar.time = date
+                    val trxYear = calendar.get(Calendar.YEAR)
+                    val trxMonth = calendar.get(Calendar.MONTH)
+
+                    if (trxYear == currentYear) {
+                        if (isSemesterGenap && trxMonth <= 5) {
+                            violationSemesterIni += trx.amount
+                        } else if (!isSemesterGenap && trxMonth > 5) {
+                            violationSemesterIni += trx.amount
+                        }
+                    }
                 }
             } catch (e: Exception) {}
         }
-        return monthlyTotals
+
+        uiState = uiState.copy(pelanggaranSemesterIni = violationSemesterIni)
+        recalculateEstimation()
     }
 
-    // 3. Fungsi Select Transaksi (Dipanggil saat klik list)
-    fun selectTransaction(transaction: Transaction) {
-        uiState = uiState.copy(selectedTransaction = transaction)
+    private fun recalculateEstimation() {
+        if (currentClusterNominal > 0) {
+            val estimasi = (currentClusterNominal - uiState.pelanggaranSemesterIni).coerceAtLeast(0L)
+            uiState = uiState.copy(estimasiPendapatanDepan = estimasi)
+        }
     }
 
-    // 4. Admin Action: Approve
+    private fun processGraphAndListByYear() {
+        val yearString = "/${uiState.selectedYear}"
+        val monthlyTotals = MutableList(12) { 0L }
+        val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
+        val yearTransactions = allTransactionsCache.filter { it.date.endsWith(yearString) }
+
+        yearTransactions.forEach { trx ->
+            // Grafik menghitung SEMUA aktivitas
+            try {
+                val date = dateFormat.parse(trx.date)
+                if (date != null) {
+                    val calendar = Calendar.getInstance()
+                    calendar.time = date
+                    monthlyTotals[calendar.get(Calendar.MONTH)] += trx.amount
+                }
+            } catch (e: Exception) {}
+        }
+
+        uiState = uiState.copy(
+            graphData = monthlyTotals,
+            transactionList = yearTransactions
+        )
+    }
+
     fun approveTransaction(trxId: String) = viewModelScope.launch {
         updateStatus(trxId, "DISETUJUI")
     }
 
-    // 5. Admin Action: Deny
     fun denyTransaction(trxId: String, amount: Long) = viewModelScope.launch {
-        // Update Status jadi DITOLAK
-        updateStatus(trxId, "DITOLAK")
-
-        // Update Total Pelanggaran di User (+ Nominal)
+        updateStatus(trxId, "DITOLAK", false)
         try {
+            val userRef = db.collection("users").document(studentUid)
             db.runTransaction { transaction ->
-                val userRef = db.collection("users").document(studentUid)
                 val snapshot = transaction.get(userRef)
                 val currentViolations = snapshot.getLong("total_penyalahgunaan") ?: 0L
                 transaction.update(userRef, "total_penyalahgunaan", currentViolations + amount)
             }.await()
 
-            // Refresh data UI
-            fetchStudentData()
+            fetchFullStudentData()
+            fetchTransactions()
         } catch (e: Exception) {
-            println("Error update pelanggaran: ${e.message}")
+            fetchTransactions()
         }
     }
 
-    private suspend fun updateStatus(trxId: String, status: String) {
+    private suspend fun updateStatus(trxId: String, status: String, refresh: Boolean = true) {
         try {
             db.collection("users").document(studentUid)
                 .collection("laporan_keuangan").document(trxId)
                 .update("status", status)
                 .await()
-            // Refresh List
-            fetchTransactions()
+            if (refresh) fetchTransactions()
         } catch (e: Exception) { }
     }
 }

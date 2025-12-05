@@ -12,16 +12,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.MailOutline
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -34,6 +39,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.kiptrack.ui.data.CategorySummary
 import com.example.kiptrack.ui.data.DetailTab
 import com.example.kiptrack.ui.data.Transaction
 import com.example.kiptrack.ui.theme.*
@@ -46,26 +52,42 @@ import java.util.Locale
 
 // Helper Format Rupiah
 fun formatRupiahDetail(amount: Long): String {
-    val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
+    val formatter = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
     formatter.maximumFractionDigits = 0
     return formatter.format(amount).replace("Rp", "Rp ")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailMahasiswaScreen(
-    uid: String, // Admin UID
-    studentUid: String, // Target Student UID
+    uid: String,
+    studentUid: String,
     onBackClick: () -> Unit
 ) {
     val viewModel: DetailMahasiswaViewModel = viewModel(
         factory = DetailMahasiswaViewModelFactory(uid, studentUid)
     )
     val state = viewModel.uiState
+    val formatter = remember { NumberFormat.getCurrencyInstance(Locale("in", "ID")) }
 
-    // Tab Logic: Default Home (Charts)
     var selectedTab by remember { mutableStateOf(DetailTab.Home) }
 
+    // State Dialog Konfirmasi
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    var selectedLog by remember { mutableStateOf<Transaction?>(null) }
+
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Detail Mahasiswa", color = Color.White, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = onBackClick) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Purple200)
+            )
+        },
         bottomBar = {
             CustomBottomNavigation(
                 selectedTab = selectedTab,
@@ -77,32 +99,33 @@ fun DetailMahasiswaScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Purple50)
-                .padding(bottom = paddingValues.calculateBottomPadding())
+                .padding(bottom = paddingValues.calculateBottomPadding(), top = paddingValues.calculateTopPadding())
         ) {
-            // --- HEADER ---
-            CommonHeader(state, onBackClick)
+            // HEADER
+            CommonHeader(state)
 
-            // --- CONTENT ---
+            // CONTENT AREA
             Box(modifier = Modifier.weight(1f)) {
-                if (state.isLoading) {
+                if (state.isLoading && state.name == "Loading...") {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = PurplePrimary)
+                        CircularProgressIndicator(color = Purple300)
                     }
                 } else {
                     when (selectedTab) {
-                        // Image 1: Charts & Summary
-                        DetailTab.Home -> TabContentCharts(state)
-
-                        // Image 2: List History
+                        DetailTab.Home -> TabContentCharts(state, viewModel)
                         DetailTab.Konfirmasi -> TabContentHistory(
                             transactions = state.transactionList,
+                            formatter = formatter,
                             onItemClick = { trx ->
-                                viewModel.selectTransaction(trx)
-                                selectedTab = DetailTab.Perincian // Pindah ke tab detail
+                                if (trx.status == "MENUNGGU") {
+                                    selectedLog = trx
+                                    showConfirmDialog = true
+                                } else {
+                                    viewModel.selectTransaction(trx)
+                                    selectedTab = DetailTab.Perincian
+                                }
                             }
                         )
-
-                        // Image 3: Detail & Approval
                         DetailTab.Perincian -> TabContentDetail(
                             transaction = state.selectedTransaction,
                             onApprove = { viewModel.approveTransaction(it.id) },
@@ -113,15 +136,57 @@ fun DetailMahasiswaScreen(
             }
         }
     }
+
+    // DIALOG KONFIRMASI (FIXED: Menggunakan description dan amount)
+    if (showConfirmDialog && selectedLog != null) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Konfirmasi Pengajuan", color = Purple300, fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text("Apakah Anda ingin menyetujui atau menolak pengajuan ini?")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    // --- PERBAIKAN DI SINI ---
+                    Text("Deskripsi: ${selectedLog!!.description}", fontWeight = FontWeight.Medium)
+                    Text("Nominal: ${formatRupiahDetail(selectedLog!!.amount)}", fontWeight = FontWeight.Medium)
+                    // -------------------------
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.approveTransaction(selectedLog!!.id)
+                        showConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                ) { Text("Setujui") }
+            },
+            dismissButton = {
+                Row {
+                    Button(
+                        onClick = {
+                            viewModel.denyTransaction(selectedLog!!.id, selectedLog!!.amount)
+                            showConfirmDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
+                    ) { Text("Tolak") }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = { showConfirmDialog = false }) { Text("Batal", color = Color.Gray) }
+                }
+            }
+        )
+    }
 }
 
-// --- HEADER COMPONENT ---
+// ... (SISA KODE KE BAWAH TIDAK PERLU DIUBAH) ...
+// Pastikan Anda tetap mengcopy fungsi-fungsi helper di bawah ini:
+
 @Composable
-fun CommonHeader(state: DetailMahasiswaUiState, onBackClick: () -> Unit) {
+fun CommonHeader(state: DetailMahasiswaUiState) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(160.dp)
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(Color(0xFFD1C4E9), Color(0xFFB39DDB))
@@ -129,30 +194,22 @@ fun CommonHeader(state: DetailMahasiswaUiState, onBackClick: () -> Unit) {
             )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Top Row
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                IconButton(onClick = onBackClick) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PurpleDark)
-                }
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = state.name,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
+                    fontSize = 18.sp,
                     color = PurpleTextDeep
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-
-                // Avatar
                 Box(
                     modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.White),
                     contentAlignment = Alignment.Center
                 ) {
-                    if (state.photoProfile.isNotBlank()) {
-                        val bitmap = ImageUtils.base64ToBitmap(state.photoProfile)
+                    val photo = state.photoProfile
+                    if (photo.isNotBlank()) {
+                        val bitmap = ImageUtils.base64ToBitmap(photo)
                         if (bitmap != null) {
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
@@ -160,26 +217,16 @@ fun CommonHeader(state: DetailMahasiswaUiState, onBackClick: () -> Unit) {
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop
                             )
-                        } else {
-                            Icon(Icons.Filled.Person, null, tint = Purple300)
-                        }
-                    } else {
-                        Icon(Icons.Filled.Person, null, tint = Purple300)
-                    }
+                        } else { Icon(Icons.Filled.Person, null, tint = Purple300) }
+                    } else { Icon(Icons.Filled.Person, null, tint = Purple300) }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Saldo
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Saldo", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PurpleTextDeep.copy(alpha = 0.7f))
                 Text(
                     text = formatRupiahDetail(state.saldo),
-                    fontSize = 36.sp,
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
@@ -188,37 +235,132 @@ fun CommonHeader(state: DetailMahasiswaUiState, onBackClick: () -> Unit) {
     }
 }
 
-// --- TAB 1: DASHBOARD / CHARTS ---
 @Composable
-fun TabContentCharts(state: DetailMahasiswaUiState) {
+fun TabContentCharts(state: DetailMahasiswaUiState, viewModel: DetailMahasiswaViewModel) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Summary Cards
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                SummaryCard("Total Pengeluaran", formatRupiahDetail(state.totalPengeluaran), Modifier.weight(1f))
-                SummaryCard("Total Pelanggaran", formatRupiahDetail(state.totalPelanggaran), Modifier.weight(1f))
+                SummaryCard("Total Pengeluaran", formatRupiahDetail(state.totalPengeluaranAllTime), Modifier.weight(1f))
+                SummaryCard("Total Pelanggaran", formatRupiahDetail(state.totalPelanggaranAllTime), Modifier.weight(1f))
             }
         }
 
-        // Line Chart
         item {
             Card(
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFA680C3)),
-                modifier = Modifier.fillMaxWidth().height(200.dp)
+                modifier = Modifier.fillMaxWidth().wrapContentHeight()
             ) {
-                Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    CustomLineChart(state.graphData, Modifier.fillMaxSize().padding(bottom = 20.dp))
-                    // Labels Bulan
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
-                        modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = { viewModel.previousYear() }) {
+                            Icon(Icons.Filled.KeyboardArrowLeft, contentDescription = "Prev", tint = Color.White)
+                        }
+                        Text(
+                            text = state.selectedYear.toString(),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        IconButton(onClick = { viewModel.nextYear() }) {
+                            Icon(Icons.Filled.KeyboardArrowRight, contentDescription = "Next", tint = Color.White)
+                        }
+                    }
+
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
+                        if (state.graphData.any { it > 0 }) {
+                            CustomLineChart(state.graphData, Modifier.fillMaxSize().padding(bottom = 20.dp))
+                        } else {
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Data Kosong", color = Color.White.copy(0.7f))
+                            }
+                        }
+                        Row(
+                            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            listOf("J","F","M","A","M","J","J","A","S","O","N","D").forEach {
+                                Text(it, fontSize = 10.sp, color = Color.White)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Divider(color = Color.White.copy(0.3f), thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        listOf("JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC").forEach {
-                            Text(it, fontSize = 8.sp, color = Color.White)
+                        Column {
+                            Text("Pelanggaran Sem. Ini", color = Color.White.copy(0.8f), fontSize = 11.sp)
+                            Text(formatRupiahDetail(state.pelanggaranSemesterIni), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("Pendapatan Sem. Depan", color = Color.White.copy(0.8f), fontSize = 11.sp, textAlign = TextAlign.End)
+                            Text(formatRupiahDetail(state.estimasiPendapatanDepan), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.End)
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Rincian Kategori",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = PurpleTextDeep
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (state.categoryData.isNotEmpty()) {
+                            CustomPieChart(
+                                data = state.categoryData,
+                                modifier = Modifier.size(120.dp)
+                            )
+                        } else {
+                            Box(modifier = Modifier.size(120.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.Center) {
+                                Text("No Data", fontSize = 10.sp, color = Color.White)
+                            }
+                        }
+
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            state.categoryData.forEach { cat ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(modifier = Modifier.size(12.dp).background(cat.color, CircleShape))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "${cat.name} (${cat.percentage.toInt()}%)",
+                                        fontSize = 12.sp,
+                                        color = PurpleTextDeep
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -227,10 +369,10 @@ fun TabContentCharts(state: DetailMahasiswaUiState) {
     }
 }
 
-// --- TAB 2: LIST HISTORY (MAIL ICON) ---
 @Composable
 fun TabContentHistory(
     transactions: List<Transaction>,
+    formatter: java.text.NumberFormat,
     onItemClick: (Transaction) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -242,18 +384,23 @@ fun TabContentHistory(
             modifier = Modifier.padding(16.dp).align(Alignment.CenterHorizontally)
         )
 
-        LazyColumn(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(transactions) { trx ->
-                HistoryItemCard(trx, onClick = { onItemClick(trx) })
+        if (transactions.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("Tidak ada riwayat transaksi.", color = Color.Gray)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(transactions) { trx ->
+                    HistoryItemCard(trx, onClick = { onItemClick(trx) })
+                }
             }
         }
     }
 }
 
-// --- TAB 3: DETAIL KONFIRMASI (EYE ICON) ---
 @Composable
 fun TabContentDetail(
     transaction: Transaction?,
@@ -263,7 +410,7 @@ fun TabContentDetail(
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         if (transaction == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Pilih transaksi dari list (ikon surat) terlebih dahulu.", color = Color.Gray, textAlign = TextAlign.Center)
+                Text("Pilih transaksi dari Tab Konfirmasi (Tengah) dulu.", color = Color.Gray, textAlign = TextAlign.Center)
             }
         } else {
             Card(
@@ -286,7 +433,6 @@ fun TabContentDetail(
                     Text("Bukti :", fontSize = 12.sp, color = PurpleTextDeep)
                     Spacer(Modifier.height(8.dp))
 
-                    // Bukti Image
                     if (transaction.proofImage.isNotBlank()) {
                         val bitmap = ImageUtils.base64ToBitmap(transaction.proofImage)
                         if (bitmap != null) {
@@ -305,20 +451,21 @@ fun TabContentDetail(
 
                     Spacer(Modifier.height(24.dp))
 
-                    // Buttons
                     if (transaction.status == "MENUNGGU") {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            TextButton(onClick = { onDeny(transaction) }) {
-                                Text("Deny", color = Color.Red, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            }
-                            TextButton(onClick = { onApprove(transaction) }) {
-                                Text("Approve", color = Color(0xFF00C853), fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            }
+                            Button(
+                                onClick = { onDeny(transaction) },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
+                            ) { Text("Deny") }
+                            Button(
+                                onClick = { onApprove(transaction) },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                            ) { Text("Approve") }
                         }
                     } else {
                         Text(
                             "Status: ${transaction.status}",
-                            color = if(transaction.isApproved) Color(0xFF00C853) else Color.Red,
+                            color = if(transaction.status == "DISETUJUI") Color(0xFF00C853) else Color.Red,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
@@ -328,8 +475,6 @@ fun TabContentDetail(
         }
     }
 }
-
-// --- HELPER ITEMS ---
 
 @Composable
 fun SummaryCard(title: String, value: String, modifier: Modifier = Modifier) {
@@ -364,25 +509,27 @@ fun HistoryItemCard(trx: Transaction, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(trx.date.split(" ")[0], fontWeight = FontWeight.Bold, color = PurpleTextDeep) // Month (JAN)
+                val dateParts = trx.date.split(" ")
+                val month = if(dateParts.isNotEmpty()) dateParts[0] else ""
+                Text(month, fontWeight = FontWeight.Bold, color = PurpleTextDeep)
                 Text(trx.date, fontSize = 12.sp, color = Color.Gray)
                 Spacer(Modifier.height(4.dp))
                 Text(formatRupiahDetail(trx.amount), fontWeight = FontWeight.Bold, color = PurpleTextDeep)
             }
             Column(horizontalAlignment = Alignment.End) {
-                val icon = when {
-                    trx.isApproved -> Icons.Outlined.CheckBox
-                    trx.isRejected -> Icons.Outlined.Cancel
-                    else -> Icons.Outlined.Warning
+                val icon = when (trx.status) {
+                    "DISETUJUI" -> Icons.Filled.CheckCircle
+                    "DITOLAK" -> Icons.Filled.Close
+                    else -> Icons.Filled.Warning
                 }
-                val color = when {
-                    trx.isApproved -> Color(0xFF00C853)
-                    trx.isRejected -> Color.Red
+                val color = when (trx.status) {
+                    "DISETUJUI" -> Color(0xFF00C853)
+                    "DITOLAK" -> Color.Red
                     else -> Color(0xFFFFA000)
                 }
                 Icon(icon, null, tint = color, modifier = Modifier.size(28.dp))
                 Spacer(Modifier.height(4.dp))
-                Text(trx.description, fontSize = 12.sp, color = PurpleTextDeep)
+                Text(trx.description, fontSize = 12.sp, color = PurpleTextDeep, maxLines = 1)
             }
         }
     }
@@ -416,6 +563,19 @@ fun CustomLineChart(data: List<Long>, modifier: Modifier = Modifier) {
             drawCircle(Color.White, radius = 3.dp.toPx(), center = Offset(x, y))
         }
         drawPath(path, Color.White, style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round))
+    }
+}
+
+@Composable
+fun CustomPieChart(data: List<CategorySummary>, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val totalPercentage = data.sumOf { it.percentage.toDouble() }.toFloat()
+        var startAngle = -90f
+        data.forEach { item ->
+            val sweepAngle = (item.percentage / 100f) * 360f
+            drawArc(color = item.color, startAngle = startAngle, sweepAngle = sweepAngle, useCenter = true)
+            startAngle += sweepAngle
+        }
     }
 }
 
