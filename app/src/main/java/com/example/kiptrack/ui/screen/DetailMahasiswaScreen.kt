@@ -112,24 +112,33 @@ fun DetailMahasiswaScreen(
                     }
                 } else {
                     when (selectedTab) {
+                        // Tab Home (Grafik) tetap sama
                         DetailTab.Home -> TabContentCharts(state, viewModel)
-                        DetailTab.Konfirmasi -> TabContentHistory(
+
+                        // --- PERUBAHAN DI SINI (DITUKAR) ---
+
+                        // 1. Tab Konfirmasi (Ikon Surat) -> Sekarang Menampilkan DETAIL TRANSAKSI
+                        DetailTab.Konfirmasi -> TabContentDetail(
+                            transaction = state.selectedTransaction,
+                            onApprove = { viewModel.approveTransaction(it.id) },
+                            onDeny = { viewModel.denyTransaction(it.id, it.amount) }
+                        )
+
+                        // 2. Tab Perincian (Ikon Mata) -> Sekarang Menampilkan LIST RIWAYAT
+                        DetailTab.Perincian -> TabContentHistory(
                             transactions = state.transactionList,
                             formatter = formatter,
                             onItemClick = { trx ->
                                 if (trx.status == "MENUNGGU") {
+                                    // Jika status Menunggu, buka Dialog Konfirmasi
                                     selectedLog = trx
                                     showConfirmDialog = true
                                 } else {
+                                    // Jika status lain, buka Detail di Tab Konfirmasi (Surat)
                                     viewModel.selectTransaction(trx)
-                                    selectedTab = DetailTab.Perincian
+                                    selectedTab = DetailTab.Konfirmasi
                                 }
                             }
-                        )
-                        DetailTab.Perincian -> TabContentDetail(
-                            transaction = state.selectedTransaction,
-                            onApprove = { viewModel.approveTransaction(it.id) },
-                            onDeny = { viewModel.denyTransaction(it.id, it.amount) }
                         )
                     }
                 }

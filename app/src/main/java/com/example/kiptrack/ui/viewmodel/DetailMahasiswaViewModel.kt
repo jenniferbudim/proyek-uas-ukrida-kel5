@@ -110,23 +110,20 @@ class DetailMahasiswaViewModel(
         try {
             val snapshot = db.collection("users").document(studentUid)
                 .collection("laporan_keuangan")
-                .orderBy("tanggal", Query.Direction.DESCENDING)
-                .get()
+                .get() // Get all data first
                 .await()
 
-            // Map untuk menampung Total Uang per Kategori
-            val categoryAmountMap = mutableMapOf<String, Long>()
+            val categoryMap = mutableMapOf<String, Long>()
 
-            val list = snapshot.documents.map { doc ->
+            val rawList = snapshot.documents.map { doc ->
                 val data = doc.data ?: emptyMap()
                 val amount = (data["nominal"] as? Number)?.toLong() ?: 0L
                 val status = data["status"] as? String ?: "MENUNGGU"
                 val categoryName = data["kategori"] as? String ?: "Lainnya"
 
-                // --- PERBAIKAN LOGIKA PIE CHART DI SINI ---
-                // SEMUA transaksi (Menunggu/Disetujui/Ditolak) dihitung ke kategori
-                val currentTotal = categoryAmountMap[categoryName] ?: 0L
-                categoryAmountMap[categoryName] = currentTotal + amount
+                // --- PIE CHART LOGIC: Sum ALL transactions by category ---
+                val currentTotal = categoryMap[categoryName] ?: 0L
+                categoryMap[categoryName] = currentTotal + amount
 
                 Transaction(
                     id = doc.id,
@@ -140,24 +137,35 @@ class DetailMahasiswaViewModel(
                 )
             }
 
-            allTransactionsCache = list
+            // --- SORTING LOGIC: Newest First ---
+            val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
+            val sortedList = rawList.sortedByDescending { trx ->
+                try {
+                    dateFormat.parse(trx.date)?.time ?: 0L
+                } catch (e: Exception) {
+                    0L
+                }
+            }
+
+            allTransactionsCache = sortedList
 
             // Total Pengeluaran (Semua Status)
-            val totalSpent = list.sumOf { it.amount }
+            val totalSpent = sortedList.sumOf { it.amount }
             // Total Pelanggaran (Hanya DITOLAK)
-            val totalViolations = list.filter { it.status == "DITOLAK" }.sumOf { it.amount }
+            val totalViolations = sortedList.filter { it.status == "DITOLAK" }.sumOf { it.amount }
 
-            calculateCurrentSemesterStats(list)
+            calculateCurrentSemesterStats(sortedList)
 
             // Generate Pie Data
-            val pieData = generatePieDataBasedOnPrice(categoryAmountMap)
+            val pieData = generatePieDataBasedOnPrice(categoryMap)
 
             uiState = uiState.copy(
                 isLoading = false,
                 totalPengeluaranAllTime = totalSpent,
                 totalPelanggaranAllTime = totalViolations,
-                selectedTransaction = list.firstOrNull(),
-                categoryData = pieData
+                selectedTransaction = sortedList.firstOrNull(),
+                categoryData = pieData,
+                transactionList = sortedList // Ensure UI gets the sorted list initially
             )
 
             processGraphAndListByYear()
@@ -169,18 +177,16 @@ class DetailMahasiswaViewModel(
 
     // --- HELPER: GENERATE PIE DATA ---
     private fun generatePieDataBasedOnPrice(categoryMap: Map<String, Long>): List<CategorySummary> {
-        // Hitung Total Uang (Semua Status)
         val totalAmount = categoryMap.values.sum().toFloat()
 
-        // Warna Kategori
         fun getColorForCategory(cat: String): Color {
             return when(cat) {
                 "Makanan & Minuman" -> PieRed
                 "Transportasi" -> PieGreen
                 "Sandang" -> PieOrange
-                "Hunian" -> Color(0xFF5C6BC0) // Indigo
-                "Pendidikan" -> Color(0xFFAB47BC) // Purple
-                "Kesehatan" -> Color(0xFFEF5350) // Light Red
+                "Hunian" -> Color(0xFF5C6BC0)
+                "Pendidikan" -> Color(0xFFAB47BC)
+                "Kesehatan" -> Color(0xFFEF5350)
                 else -> Color.Gray
             }
         }
@@ -240,10 +246,11 @@ class DetailMahasiswaViewModel(
         val yearString = "/${uiState.selectedYear}"
         val monthlyTotals = MutableList(12) { 0L }
         val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
+
+        // Filter transactions for the selected year
         val yearTransactions = allTransactionsCache.filter { it.date.endsWith(yearString) }
 
         yearTransactions.forEach { trx ->
-            // Grafik menghitung SEMUA aktivitas
             try {
                 val date = dateFormat.parse(trx.date)
                 if (date != null) {
@@ -273,7 +280,6 @@ class DetailMahasiswaViewModel(
                 val currentViolations = snapshot.getLong("total_penyalahgunaan") ?: 0L
                 transaction.update(userRef, "total_penyalahgunaan", currentViolations + amount)
             }.await()
-
             fetchFullStudentData()
             fetchTransactions()
         } catch (e: Exception) {
