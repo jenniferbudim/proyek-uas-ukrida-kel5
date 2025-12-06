@@ -26,10 +26,12 @@ data class DetailMahasiswaUiState(
     val saldo: Long = 0L,
     val photoProfile: String = "",
 
+    // Statistik ALL TIME (Sejarah)
     val totalPengeluaranAllTime: Long = 0L,
     val totalPelanggaranAllTime: Long = 0L,
 
-    val pelanggaranSemesterIni: Long = 0L,
+    // Statistik SEMESTER INI (Aktif)
+    val pelanggaranSemesterIni: Long = 0L, // Diambil dari DB (total_penyalahgunaan)
     val estimasiPendapatanDepan: Long = 0L,
 
     val transactionList: List<Transaction> = emptyList(),
@@ -50,7 +52,7 @@ class DetailMahasiswaViewModel(
 
     private val db = FirebaseFirestore.getInstance()
     private var allTransactionsCache: List<Transaction> = emptyList()
-    private var currentClusterNominal: Long = 0L
+    private var currentClusterNominal: Long = 8000000L // Default sebelum load config
 
     init {
         fetchFullStudentData()
@@ -71,59 +73,62 @@ class DetailMahasiswaViewModel(
         uiState = uiState.copy(selectedTransaction = trx)
     }
 
-    // --- 1. FETCH DATA MAHASISWA & AUTO UPDATE SEMESTER ---
+    // --- 1. FETCH DATA MAHASISWA & AUTO UPDATE ---
     private fun fetchFullStudentData() = viewModelScope.launch {
         try {
             val docUser = db.collection("users").document(studentUid).get().await()
             if (!docUser.exists()) return@launch
 
             val dataUser = docUser.data ?: emptyMap()
-            val idUniv = dataUser["id_universitas"] as? String ?: ""
-            val idProdi = dataUser["id_prodi"] as? String ?: ""
 
-            // Data untuk cek semester
-            val jenjang = dataUser["jenjang"] as? String ?: "S1"
+            // Ambil Data Semester untuk Cek Auto-Update
             val semesterNow = (dataUser["semester_berjalan"] as? Number)?.toInt() ?: 1
+            val jenjang = dataUser["jenjang"] as? String ?: "S1"
             val lastUpdate = dataUser["last_update_period"] as? String ?: ""
             val currentSaldo = (dataUser["saldo_saat_ini"] as? Number)?.toLong() ?: 0L
-            val currentViolations = (dataUser["total_penyalahgunaan"] as? Number)?.toLong() ?: 0L
+            val currentViolationsDB = (dataUser["total_penyalahgunaan"] as? Number)?.toLong() ?: 0L
 
-            uiState = uiState.copy(
-                name = dataUser["nama"] as? String ?: "Mahasiswa",
-                saldo = currentSaldo,
-                photoProfile = dataUser["foto_profil"] as? String ?: "",
-                totalPelanggaranAllTime = currentViolations
-            )
+            // Ambil Nominal Cluster (PENTING untuk Top-up Saldo)
+            val idUniv = dataUser["id_universitas"] as? String ?: ""
+            val idProdi = dataUser["id_prodi"] as? String ?: ""
 
             if (idUniv.isNotBlank()) {
                 val docUniv = db.collection("universitas").document(idUniv).get().await()
                 val clusterVal = docUniv.get("wilayah_klaster")?.toString() ?: "1"
                 val isKedokteran = idProdi.contains("kedokteran", ignoreCase = true) && !idProdi.contains("non", ignoreCase = true)
                 val configDocId = if (isKedokteran) "aturan_biaya_hidup_kedokteran" else "aturan_biaya_hidup_non-kedokteran"
+
                 val docConfig = db.collection("konfigurasi").document(configDocId).get().await()
-                val nominalBantuan = docConfig.getLong("klaster_$clusterVal") ?: 0L
-
-                currentClusterNominal = nominalBantuan
-                recalculateEstimation()
-
-                // --- CEK & LAKUKAN UPDATE SEMESTER (SISI ADMIN) ---
-                // Hitung estimasi allowance untuk semester depan (Bantuan - Pelanggaran)
-                val nextAllowance = (nominalBantuan - currentViolations).coerceAtLeast(0L)
-
-                checkAndPerformSemesterUpdate(
-                    currentSem = semesterNow,
-                    jenjang = jenjang,
-                    lastUpdatePeriod = lastUpdate,
-                    nextAllowance = nextAllowance,
-                    currentSaldo = currentSaldo
-                )
+                currentClusterNominal = docConfig.getLong("klaster_$clusterVal") ?: 8000000L
             }
+
+            // Hitung Estimasi Depan
+            val estimasiDepan = (currentClusterNominal - currentViolationsDB).coerceAtLeast(0L)
+
+            // Update State UI
+            uiState = uiState.copy(
+                name = dataUser["nama"] as? String ?: "Mahasiswa",
+                saldo = currentSaldo,
+                photoProfile = dataUser["foto_profil"] as? String ?: "",
+                pelanggaranSemesterIni = currentViolationsDB, // Dari DB (Active Debt)
+                estimasiPendapatanDepan = estimasiDepan
+            )
+
+            // --- JALANKAN LOGIKA AUTO-UPDATE SEMESTER (SAMA SEPERTI DASHBOARD MAHASISWA) ---
+            checkAndPerformSemesterUpdate(
+                currentSem = semesterNow,
+                jenjang = jenjang,
+                lastUpdatePeriod = lastUpdate,
+                nextAllowance = estimasiDepan, // Gunakan estimasi yang baru dihitung
+                currentSaldo = currentSaldo
+            )
+
         } catch (e: Exception) {
             println("Error fetch student: ${e.message}")
         }
     }
 
-    // --- FUNGSI PINTAR: UPDATE SEMESTER ---
+    // --- LOGIKA AUTO UPDATE (DIPANGGIL OTOMATIS) ---
     private fun checkAndPerformSemesterUpdate(
         currentSem: Int,
         jenjang: String,
@@ -139,33 +144,25 @@ class DetailMahasiswaViewModel(
         val currentPeriodKey = when (month) {
             Calendar.JANUARY -> "$year-JAN" // Periode Genap
             Calendar.JULY -> "$year-JUL"    // Periode Ganjil
-            else -> return // Bukan bulan kenaikan semester, abaikan
+            else -> return // Bukan bulan kenaikan semester
         }
 
         // Cek Batas Semester
         val maxSemester = if (jenjang.contains("D3", true)) 6 else 8
 
-        // SYARAT UPDATE:
-        // 1. Belum diupdate di periode ini (Key beda)
-        // 2. Masih di bawah batas semester maksimal
+        // SYARAT: Belum update di periode ini & Belum lulus
         if (currentPeriodKey != lastUpdatePeriod && currentSem < maxSemester) {
-
-            // Lakukan Update di Firestore
             val updates = hashMapOf<String, Any>(
-                "semester_berjalan" to (currentSem + 1),     // Naik kelas
-                "saldo_saat_ini" to (currentSaldo + nextAllowance), // Top Up Saldo
-                "total_penyalahgunaan" to 0,                 // Reset Denda
-                "last_update_period" to currentPeriodKey     // Tandai sudah update
+                "semester_berjalan" to (currentSem + 1),
+                "saldo_saat_ini" to (currentSaldo + nextAllowance),
+                "total_penyalahgunaan" to 0, // Reset Pelanggaran
+                "last_update_period" to currentPeriodKey
             )
 
             db.collection("users").document(studentUid).update(updates)
                 .addOnSuccessListener {
-                    println("Admin triggered Semester Update to ${currentSem + 1}")
-                    // Refresh data setelah update agar UI Admin berubah
+                    // Refresh data agar UI Admin langsung berubah
                     fetchFullStudentData()
-                }
-                .addOnFailureListener { e ->
-                    println("Failed update semester: ${e.message}")
                 }
         }
     }
@@ -176,20 +173,21 @@ class DetailMahasiswaViewModel(
         try {
             val snapshot = db.collection("users").document(studentUid)
                 .collection("laporan_keuangan")
-                .get() // Get all data first
+                .get()
                 .await()
 
             val categoryMap = mutableMapOf<String, Long>()
 
-            val rawList = snapshot.documents.map { doc ->
+            val list = snapshot.documents.map { doc ->
                 val data = doc.data ?: emptyMap()
                 val amount = (data["nominal"] as? Number)?.toLong() ?: 0L
                 val status = data["status"] as? String ?: "MENUNGGU"
                 val categoryName = data["kategori"] as? String ?: "Lainnya"
 
-                // --- PIE CHART LOGIC: Sum ALL transactions by category ---
-                val currentTotal = categoryMap[categoryName] ?: 0L
-                categoryMap[categoryName] = currentTotal + amount
+                if (status == "DISETUJUI") {
+                    val currentTotal = categoryMap[categoryName] ?: 0L
+                    categoryMap[categoryName] = currentTotal + amount
+                }
 
                 Transaction(
                     id = doc.id,
@@ -203,37 +201,27 @@ class DetailMahasiswaViewModel(
                 )
             }
 
-            // --- SORTING LOGIC: Newest First ---
+            // Sorting Terbaru
             val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
-            val sortedList = rawList.sortedByDescending { trx ->
-                try {
-                    dateFormat.parse(trx.date)?.time ?: 0L
-                } catch (e: Exception) {
-                    0L
-                }
+            val sortedList = list.sortedByDescending { trx ->
+                try { dateFormat.parse(trx.date)?.time ?: 0L } catch (e: Exception) { 0L }
             }
-
             allTransactionsCache = sortedList
 
-            // Total Pengeluaran (Semua Status)
-            val totalSpent = sortedList.sumOf { it.amount }
-            // Total Pelanggaran (Hanya DITOLAK)
-            val totalViolations = sortedList.filter { it.status == "DITOLAK" }.sumOf { it.amount }
+            // STATISTIK ALL TIME (Dihitung dari riwayat)
+            val totalSpent = sortedList.sumOf { it.amount } // Total keluar (semua status)
+            val totalViolationsHistory = sortedList.filter { it.status == "DITOLAK" }.sumOf { it.amount } // Total Ditolak Seumur Hidup
 
-            calculateCurrentSemesterStats(sortedList)
-
-            // Generate Pie Data
             val pieData = generatePieDataBasedOnPrice(categoryMap)
 
             uiState = uiState.copy(
                 isLoading = false,
                 totalPengeluaranAllTime = totalSpent,
-                totalPelanggaranAllTime = totalViolations,
+                totalPelanggaranAllTime = totalViolationsHistory, // Tampilkan sejarah total di kartu atas
                 selectedTransaction = sortedList.firstOrNull(),
                 categoryData = pieData,
-                transactionList = sortedList // Ensure UI gets the sorted list initially
+                transactionList = sortedList
             )
-
             processGraphAndListByYear()
 
         } catch (e: Exception) {
@@ -241,10 +229,8 @@ class DetailMahasiswaViewModel(
         }
     }
 
-    // --- HELPER: GENERATE PIE DATA ---
     private fun generatePieDataBasedOnPrice(categoryMap: Map<String, Long>): List<CategorySummary> {
         val totalAmount = categoryMap.values.sum().toFloat()
-
         fun getColorForCategory(cat: String): Color {
             return when(cat) {
                 "Makanan & Minuman" -> PieRed
@@ -256,64 +242,19 @@ class DetailMahasiswaViewModel(
                 else -> Color.Gray
             }
         }
-
         return categoryMap.map { (categoryName, amount) ->
-            val percentage = if (totalAmount > 0) {
-                (amount / totalAmount) * 100f
-            } else 0f
-
             CategorySummary(
                 name = categoryName,
-                percentage = percentage,
+                percentage = if (totalAmount > 0) (amount / totalAmount) * 100f else 0f,
                 color = getColorForCategory(categoryName)
             )
         }.sortedByDescending { it.percentage }
-    }
-
-    private fun calculateCurrentSemesterStats(allTrx: List<Transaction>) {
-        val calendar = Calendar.getInstance()
-        val currentYear = calendar.get(Calendar.YEAR)
-        val currentMonth = calendar.get(Calendar.MONTH)
-        val isSemesterGenap = currentMonth <= 5
-        val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
-        var violationSemesterIni = 0L
-
-        allTrx.filter { it.status == "DITOLAK" }.forEach { trx ->
-            try {
-                val date = dateFormat.parse(trx.date)
-                if (date != null) {
-                    calendar.time = date
-                    val trxYear = calendar.get(Calendar.YEAR)
-                    val trxMonth = calendar.get(Calendar.MONTH)
-
-                    if (trxYear == currentYear) {
-                        if (isSemesterGenap && trxMonth <= 5) {
-                            violationSemesterIni += trx.amount
-                        } else if (!isSemesterGenap && trxMonth > 5) {
-                            violationSemesterIni += trx.amount
-                        }
-                    }
-                }
-            } catch (e: Exception) {}
-        }
-
-        uiState = uiState.copy(pelanggaranSemesterIni = violationSemesterIni)
-        recalculateEstimation()
-    }
-
-    private fun recalculateEstimation() {
-        if (currentClusterNominal > 0) {
-            val estimasi = (currentClusterNominal - uiState.pelanggaranSemesterIni).coerceAtLeast(0L)
-            uiState = uiState.copy(estimasiPendapatanDepan = estimasi)
-        }
     }
 
     private fun processGraphAndListByYear() {
         val yearString = "/${uiState.selectedYear}"
         val monthlyTotals = MutableList(12) { 0L }
         val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
-
-        // Filter transactions for the selected year
         val yearTransactions = allTransactionsCache.filter { it.date.endsWith(yearString) }
 
         yearTransactions.forEach { trx ->
@@ -326,11 +267,7 @@ class DetailMahasiswaViewModel(
                 }
             } catch (e: Exception) {}
         }
-
-        uiState = uiState.copy(
-            graphData = monthlyTotals,
-            transactionList = yearTransactions
-        )
+        uiState = uiState.copy(graphData = monthlyTotals, transactionList = yearTransactions)
     }
 
     fun approveTransaction(trxId: String) = viewModelScope.launch {
@@ -340,13 +277,20 @@ class DetailMahasiswaViewModel(
     fun denyTransaction(trxId: String, amount: Long) = viewModelScope.launch {
         updateStatus(trxId, "DITOLAK", false)
         try {
+            // Tambah Pelanggaran & Kurangi Saldo (Opsional, tergantung kebijakan)
+            // Sesuai request: Ditolak -> Masuk Pelanggaran
             val userRef = db.collection("users").document(studentUid)
             db.runTransaction { transaction ->
                 val snapshot = transaction.get(userRef)
                 val currentViolations = snapshot.getLong("total_penyalahgunaan") ?: 0L
+
+                // Update Pelanggaran di DB
                 transaction.update(userRef, "total_penyalahgunaan", currentViolations + amount)
             }.await()
+
+            // Refresh Data User (Pelanggaran Semester Ini)
             fetchFullStudentData()
+            // Refresh List
             fetchTransactions()
         } catch (e: Exception) {
             fetchTransactions()
