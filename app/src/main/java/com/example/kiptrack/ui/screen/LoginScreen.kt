@@ -144,7 +144,7 @@ fun AdminLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
             Spacer(modifier = Modifier.height(80.dp))
             Icon(painter = painterResource(id = R.drawable.kiptrack), contentDescription = "Logo", modifier = Modifier.size(100.dp), tint = Color.Unspecified)
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Login sebagai Admin", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Purple200)
+            Text(text = "Login sebagai Admin", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PurplePrimary)
             Spacer(modifier = Modifier.height(50.dp))
             LoginForm(idLabel = "Username", idPlaceholder = "Masukkan Username Admin", inputId = state.inputId, password = state.password, onIdChange = { onEvent(LoginEvent.OnIdChange(it)) }, onPasswordChange = { onEvent(LoginEvent.OnPasswordChange(it)) }, isLoading = state.isLoading)
             Spacer(modifier = Modifier.height(60.dp))
@@ -175,10 +175,10 @@ fun LoginForm(
     isLoading: Boolean
 ) {
     Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
-        Text(text = "$idLabel :", color = Purple200, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+        Text(text = "$idLabel :", color = PurplePrimary, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
         CustomTextField(value = inputId, onValueChange = onIdChange, placeholder = idPlaceholder, enabled = !isLoading)
         Spacer(modifier = Modifier.height(20.dp))
-        Text(text = "Password :", color = Purple200, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+        Text(text = "Password :", color = PurplePrimary, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
 
         CustomTextField(value = password, onValueChange = onPasswordChange, placeholder = "Masukkan Password Anda", isPassword = true, enabled = !isLoading)
     }

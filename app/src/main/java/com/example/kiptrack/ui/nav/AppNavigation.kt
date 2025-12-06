@@ -8,17 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.kiptrack.ui.model.UserRole
-import com.example.kiptrack.ui.screen.DashboardAdminScreen
-import com.example.kiptrack.ui.screen.DashboardMahasiswaScreen
-import com.example.kiptrack.ui.screen.DashboardWaliScreen
-import com.example.kiptrack.ui.screen.DetailMahasiswaScreen
-import com.example.kiptrack.ui.screen.ListMahasiswaProdiScreen
-import com.example.kiptrack.ui.screen.ListUniversitasScreen
-import com.example.kiptrack.ui.screen.LogFormScreen
-import com.example.kiptrack.ui.screen.LoginScreen
-import com.example.kiptrack.ui.screen.PerincianPengeluaranWaliScreen
-import com.example.kiptrack.ui.screen.ProfilMahasiswaAdminScreen
-import com.example.kiptrack.ui.screen.ProfileMahasiswaScreen
+import com.example.kiptrack.ui.screen.*
 
 @Composable
 fun AppNavigation(modifier: Modifier = Modifier) {
@@ -35,6 +25,7 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                     UserRole.ADMIN -> "dashboard_admin/$uid"
                 }
                 navController.navigate(route) {
+                    // This removes the Login screen from backstack when entering dashboard
                     popUpTo("login") { inclusive = true }
                 }
             })
@@ -67,7 +58,8 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onBackClicked = { navController.popBackStack() },
                 onLogoutClicked = {
                     navController.navigate("login") {
-                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        // FIX: popUpTo(navController.graph.id) clears the WHOLE stack
+                        popUpTo(navController.graph.id) { inclusive = true }
                     }
                 }
             )
@@ -93,22 +85,24 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             DashboardWaliScreen(
                 uid = uid,
                 onNavigateToHistory = { currentUid ->
-                    // Uses the current Wali's UID for the history route
                     navController.navigate("history_wali/$currentUid")
                 },
-                onLogoutClicked = { /* ... */ }
+                onLogoutClicked = {
+                    navController.navigate("login") {
+                        // FIX: popUpTo(navController.graph.id) clears the WHOLE stack
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                }
             )
         }
 
         composable(
-            route = "history_wali/{uid}", // Route only expects 'uid' (Wali's UID)
+            route = "history_wali/{uid}",
             arguments = listOf(
                 navArgument("uid") { type = NavType.StringType }
             )
         ) { backStackEntry ->
             val uid = backStackEntry.arguments?.getString("uid") ?: ""
-
-            // PerincianPengeluaranWaliScreen only takes 'uid' and a back callback
             PerincianPengeluaranWaliScreen(
                 uid = uid,
                 onBackToDashboard = { navController.popBackStack() }
@@ -131,7 +125,8 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 },
                 onLogoutClicked = {
                     navController.navigate("login") {
-                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        // FIX: popUpTo(navController.graph.id) clears the WHOLE stack
+                        popUpTo(navController.graph.id) { inclusive = true }
                     }
                 }
             )
@@ -194,10 +189,9 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             val studentUid = backStackEntry.arguments?.getString("studentUid") ?: ""
 
             DetailMahasiswaScreen(
-                uid = uid, // UID Admin
-                studentUid = studentUid, // UID Mahasiswa yang dilihat
+                uid = uid,
+                studentUid = studentUid,
                 onBackClick = { navController.popBackStack() },
-                // --- FIXED: Using the admin specific callback ---
                 onNavigateToProfileAdmin = { targetStudentUid ->
                     navController.navigate("profile_mahasiswa_admin/$targetStudentUid")
                 }
@@ -212,8 +206,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             )
         ) { backStackEntry ->
             val studentUid = backStackEntry.arguments?.getString("studentUid") ?: ""
-
-            // Use the specific Admin Profile screen with correct parameters
             ProfilMahasiswaAdminScreen(
                 uid = studentUid,
                 onBackClicked = { navController.popBackStack() }
