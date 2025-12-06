@@ -71,7 +71,7 @@ class DetailMahasiswaViewModel(
         uiState = uiState.copy(selectedTransaction = trx)
     }
 
-    // --- 1. FETCH DATA MAHASISWA ---
+    // --- 1. FETCH DATA MAHASISWA & AUTO UPDATE SEMESTER ---
     private fun fetchFullStudentData() = viewModelScope.launch {
         try {
             val docUser = db.collection("users").document(studentUid).get().await()
@@ -81,11 +81,18 @@ class DetailMahasiswaViewModel(
             val idUniv = dataUser["id_universitas"] as? String ?: ""
             val idProdi = dataUser["id_prodi"] as? String ?: ""
 
+            // Data untuk cek semester
+            val jenjang = dataUser["jenjang"] as? String ?: "S1"
+            val semesterNow = (dataUser["semester_berjalan"] as? Number)?.toInt() ?: 1
+            val lastUpdate = dataUser["last_update_period"] as? String ?: ""
+            val currentSaldo = (dataUser["saldo_saat_ini"] as? Number)?.toLong() ?: 0L
+            val currentViolations = (dataUser["total_penyalahgunaan"] as? Number)?.toLong() ?: 0L
+
             uiState = uiState.copy(
                 name = dataUser["nama"] as? String ?: "Mahasiswa",
-                saldo = (dataUser["saldo_saat_ini"] as? Number)?.toLong() ?: 0L,
+                saldo = currentSaldo,
                 photoProfile = dataUser["foto_profil"] as? String ?: "",
-                totalPelanggaranAllTime = (dataUser["total_penyalahgunaan"] as? Number)?.toLong() ?: 0L
+                totalPelanggaranAllTime = currentViolations
             )
 
             if (idUniv.isNotBlank()) {
@@ -98,9 +105,68 @@ class DetailMahasiswaViewModel(
 
                 currentClusterNominal = nominalBantuan
                 recalculateEstimation()
+
+                // --- CEK & LAKUKAN UPDATE SEMESTER (SISI ADMIN) ---
+                // Hitung estimasi allowance untuk semester depan (Bantuan - Pelanggaran)
+                val nextAllowance = (nominalBantuan - currentViolations).coerceAtLeast(0L)
+
+                checkAndPerformSemesterUpdate(
+                    currentSem = semesterNow,
+                    jenjang = jenjang,
+                    lastUpdatePeriod = lastUpdate,
+                    nextAllowance = nextAllowance,
+                    currentSaldo = currentSaldo
+                )
             }
         } catch (e: Exception) {
             println("Error fetch student: ${e.message}")
+        }
+    }
+
+    // --- FUNGSI PINTAR: UPDATE SEMESTER ---
+    private fun checkAndPerformSemesterUpdate(
+        currentSem: Int,
+        jenjang: String,
+        lastUpdatePeriod: String,
+        nextAllowance: Long,
+        currentSaldo: Long
+    ) {
+        val calendar = Calendar.getInstance()
+        val month = calendar.get(Calendar.MONTH) // 0=Jan, 6=Jul
+        val year = calendar.get(Calendar.YEAR)
+
+        // Tentukan Periode Saat Ini
+        val currentPeriodKey = when (month) {
+            Calendar.JANUARY -> "$year-JAN" // Periode Genap
+            Calendar.JULY -> "$year-JUL"    // Periode Ganjil
+            else -> return // Bukan bulan kenaikan semester, abaikan
+        }
+
+        // Cek Batas Semester
+        val maxSemester = if (jenjang.contains("D3", true)) 6 else 8
+
+        // SYARAT UPDATE:
+        // 1. Belum diupdate di periode ini (Key beda)
+        // 2. Masih di bawah batas semester maksimal
+        if (currentPeriodKey != lastUpdatePeriod && currentSem < maxSemester) {
+
+            // Lakukan Update di Firestore
+            val updates = hashMapOf<String, Any>(
+                "semester_berjalan" to (currentSem + 1),     // Naik kelas
+                "saldo_saat_ini" to (currentSaldo + nextAllowance), // Top Up Saldo
+                "total_penyalahgunaan" to 0,                 // Reset Denda
+                "last_update_period" to currentPeriodKey     // Tandai sudah update
+            )
+
+            db.collection("users").document(studentUid).update(updates)
+                .addOnSuccessListener {
+                    println("Admin triggered Semester Update to ${currentSem + 1}")
+                    // Refresh data setelah update agar UI Admin berubah
+                    fetchFullStudentData()
+                }
+                .addOnFailureListener { e ->
+                    println("Failed update semester: ${e.message}")
+                }
         }
     }
 
@@ -133,8 +199,7 @@ class DetailMahasiswaViewModel(
                     status = status,
                     quantity = (data["kuantitas"] as? Number)?.toInt() ?: 1,
                     unitPrice = (data["harga_satuan"] as? Number)?.toLong() ?: 0L,
-                    proofImage = data["bukti_base64"] as? String ?: "",
-                    category = categoryName
+                    proofImage = data["bukti_base64"] as? String ?: ""
                 )
             }
 

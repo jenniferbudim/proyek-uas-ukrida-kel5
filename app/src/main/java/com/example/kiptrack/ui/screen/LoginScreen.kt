@@ -12,7 +12,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -23,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.White
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -37,9 +37,11 @@ import com.example.kiptrack.R
 import com.example.kiptrack.ui.event.LoginEvent
 import com.example.kiptrack.ui.model.UserRole
 import com.example.kiptrack.ui.state.LoginUiState
+import com.example.kiptrack.ui.theme.Purple100
 import com.example.kiptrack.ui.theme.Purple50
-import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.theme.Purple200
+import com.example.kiptrack.ui.theme.PurplePrimary
+
 import com.example.kiptrack.ui.viewmodel.LoginViewModel
 
 @Composable
@@ -81,7 +83,7 @@ fun LoginScreen(
 fun GeneralLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(Purple200)) {
+        .background(Purple100)) {
         Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(modifier = Modifier.height(60.dp))
             Icon(
@@ -91,7 +93,7 @@ fun GeneralLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
                 tint = Color.Unspecified
             )
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Welcome to KIP Track", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Purple300)
+            Text(text = "Welcome to KIP Track", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PurplePrimary)
             Spacer(modifier = Modifier.height(30.dp))
             Surface(modifier = Modifier.fillMaxSize(), shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp), color = Purple50) {
                 Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -100,15 +102,17 @@ fun GeneralLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
                                 .clickable { onEvent(LoginEvent.OnRoleSelected(role)) }
                                 .padding(8.dp)) {
-                                Text(text = role.label, color = if (state.selectedRole == role) Purple300 else Color.Gray, fontWeight = FontWeight.Bold)
+                                // 2. FIX: UserRole not selected to be colored Purple200
+                                Text(text = role.label, color = if (state.selectedRole == role) PurplePrimary else Purple200, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 if (state.selectedRole == role) Box(modifier = Modifier
                                     .width(80.dp)
                                     .height(3.dp)
-                                    .background(Purple300))
+                                    .background(Purple200))
                             }
                         }
                     }
+
                     Spacer(modifier = Modifier.height(40.dp))
                     val idLabel = if (state.selectedRole == UserRole.MAHASISWA) "NIM" else "ID Wali"
                     val idPlaceholder = if (state.selectedRole == UserRole.MAHASISWA) "Masukkan NIM Anda" else "Masukkan ID Anda"
@@ -116,10 +120,11 @@ fun GeneralLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
                     Spacer(modifier = Modifier.height(40.dp))
                     PurpleButton(text = "LOGIN", onClick = { onEvent(LoginEvent.OnLoginClicked) }, isLoading = state.isLoading)
                     Spacer(modifier = Modifier.weight(1f))
+                    // 2. FIX: Change icon.Settings to R.drawable.adminbutton
                     OutlinedIconButton(onClick = { onEvent(LoginEvent.OnToggleAdminMode) }, modifier = Modifier
                         .size(60.dp)
-                        .border(1.dp, Purple300, CircleShape), colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = Purple300)) {
-                        Icon(imageVector = Icons.Filled.Settings, contentDescription = "Admin Login", modifier = Modifier.size(30.dp))
+                        .border(1.dp, PurplePrimary, CircleShape), colors = IconButtonDefaults.outlinedIconButtonColors(contentColor = PurplePrimary)) {
+                        Icon(painter = painterResource(id = R.drawable.adminbutton), contentDescription = "Admin Login", modifier = Modifier.size(30.dp), tint = PurplePrimary)
                     }
                     Spacer(modifier = Modifier.height(20.dp))
                 }
@@ -139,7 +144,7 @@ fun AdminLoginScreen(state: LoginUiState, onEvent: (LoginEvent) -> Unit) {
             Spacer(modifier = Modifier.height(80.dp))
             Icon(painter = painterResource(id = R.drawable.kiptrack), contentDescription = "Logo", modifier = Modifier.size(100.dp), tint = Color.Unspecified)
             Spacer(modifier = Modifier.height(16.dp))
-            Text(text = "Login sebagai Admin", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Purple300)
+            Text(text = "Login sebagai Admin", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Purple200)
             Spacer(modifier = Modifier.height(50.dp))
             LoginForm(idLabel = "Username", idPlaceholder = "Masukkan Username Admin", inputId = state.inputId, password = state.password, onIdChange = { onEvent(LoginEvent.OnIdChange(it)) }, onPasswordChange = { onEvent(LoginEvent.OnPasswordChange(it)) }, isLoading = state.isLoading)
             Spacer(modifier = Modifier.height(60.dp))
@@ -170,10 +175,10 @@ fun LoginForm(
     isLoading: Boolean
 ) {
     Column(horizontalAlignment = Alignment.Start, modifier = Modifier.fillMaxWidth()) {
-        Text(text = "$idLabel :", color = Purple300, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+        Text(text = "$idLabel :", color = Purple200, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
         CustomTextField(value = inputId, onValueChange = onIdChange, placeholder = idPlaceholder, enabled = !isLoading)
         Spacer(modifier = Modifier.height(20.dp))
-        Text(text = "Password :", color = Purple300, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+        Text(text = "Password :", color = Purple200, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
 
         CustomTextField(value = password, onValueChange = onPasswordChange, placeholder = "Masukkan Password Anda", isPassword = true, enabled = !isLoading)
     }
@@ -202,12 +207,14 @@ fun CustomTextField(
     }
 
     val icon = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
-    val iconTint = Purple300.copy(alpha = 0.7f)
+    val iconTint = Purple200.copy(alpha = 0.7f)
 
     TextField(
         value = value,
         onValueChange = onValueChange,
         enabled = enabled,
+        // 3. FIX: text on the textfield to be colored Purple200
+        textStyle = LocalTextStyle.current.copy(color = Purple200),
         placeholder = { Text(text = placeholder, color = Color.LightGray, fontSize = 14.sp) },
         modifier = Modifier
             .fillMaxWidth()
@@ -251,16 +258,25 @@ fun PurpleButton(
         onClick = onClick,
         enabled = !isLoading,
         modifier = modifier.shadow(4.dp, RoundedCornerShape(50)),
-        colors = ButtonDefaults.buttonColors(containerColor = if (isPrimary) Purple200 else Color(0xFFE1BEE7)),
+        colors = ButtonDefaults.buttonColors(containerColor = Purple200),
         contentPadding = PaddingValues(vertical = 16.dp, horizontal = 50.dp)
     ) {
         if (isLoading) {
-            CircularProgressIndicator(
-                color = if (isPrimary) Purple300 else Purple200,
-                modifier = Modifier.size(24.dp)
-            )
+            // FIX: Remove Modifier.fillMaxSize() from the Box to prevent excessive vertical stretching.
+            // The Box now just ensures the spinner is centered within the space normally taken by the text.
+            Box(
+                // wrapContentSize centers the content within the space allocated by the Button's contentPadding
+                modifier = Modifier.wrapContentSize(Alignment.Center),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    color = Color.White,
+                    modifier = Modifier.size(24.dp),
+                    strokeWidth = 3.dp
+                )
+            }
         } else {
-            Text(text = text, color = if (isPrimary) Purple300 else Purple300, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(text = text, color = PurplePrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }
@@ -271,11 +287,11 @@ fun WaveShape(modifier: Modifier = Modifier) {
         val path = Path().apply {
             moveTo(0f, size.height)
             lineTo(size.width, size.height)
-            lineTo(size.width, size.height * 0.5f)
-            quadraticBezierTo(size.width * 0.75f, size.height * 0.2f, size.width * 0.5f, size.height * 0.7f)
-            quadraticBezierTo(size.width * 0.25f, size.height * 1.1f, 0f, size.height * 0.6f)
+            lineTo(size.width, size.height * 0.3f)
+            quadraticBezierTo(size.width * 0.75f, size.height * 0.1f, size.width * 0.5f, size.height * 0.4f)
+            quadraticBezierTo(size.width * 0.25f, size.height * 0.8f, 0f, size.height * 0.35f)
             close()
         }
-        drawPath(path = path, color = Color(0xFFF3E5F5).copy(alpha = 0.5f))
+        drawPath(path = path, color = Color.White.copy(alpha = 0.5f))
     }
 }

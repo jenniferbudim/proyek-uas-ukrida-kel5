@@ -16,6 +16,7 @@ import com.example.kiptrack.ui.screen.ListMahasiswaProdiScreen
 import com.example.kiptrack.ui.screen.ListUniversitasScreen
 import com.example.kiptrack.ui.screen.LogFormScreen
 import com.example.kiptrack.ui.screen.LoginScreen
+import com.example.kiptrack.ui.screen.PerincianPengeluaranWaliScreen
 import com.example.kiptrack.ui.screen.ProfilMahasiswaAdminScreen
 import com.example.kiptrack.ui.screen.ProfileMahasiswaScreen
 
@@ -89,8 +90,31 @@ fun AppNavigation(modifier: Modifier = Modifier) {
             arguments = listOf(navArgument("uid") { type = NavType.StringType })
         ) { backStackEntry ->
             val uid = backStackEntry.arguments?.getString("uid") ?: ""
-            DashboardWaliScreen(uid = uid)
+            DashboardWaliScreen(
+                uid = uid,
+                onNavigateToHistory = { currentUid ->
+                    // Uses the current Wali's UID for the history route
+                    navController.navigate("history_wali/$currentUid")
+                },
+                onLogoutClicked = { /* ... */ }
+            )
         }
+
+        composable(
+            route = "history_wali/{uid}", // Route only expects 'uid' (Wali's UID)
+            arguments = listOf(
+                navArgument("uid") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val uid = backStackEntry.arguments?.getString("uid") ?: ""
+
+            // PerincianPengeluaranWaliScreen only takes 'uid' and a back callback
+            PerincianPengeluaranWaliScreen(
+                uid = uid,
+                onBackToDashboard = { navController.popBackStack() }
+            )
+        }
+
 
         // --- 4. ADMIN FLOW ---
 

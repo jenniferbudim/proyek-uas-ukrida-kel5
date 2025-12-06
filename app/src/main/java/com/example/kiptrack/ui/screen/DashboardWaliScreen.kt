@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.West
 import androidx.compose.material3.*
@@ -22,25 +23,25 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.CategorySummary
 import com.example.kiptrack.ui.data.MonthlyData
-import com.example.kiptrack.ui.theme.Purple300
-import com.example.kiptrack.ui.theme.Purple50
+import com.example.kiptrack.ui.theme.* // Importing your Color.kt
 import com.example.kiptrack.ui.viewmodel.DashboardWaliViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardWaliViewModelFactory
 import java.text.NumberFormat
 import java.util.Locale
 
 @Composable
-fun DashboardWaliScreen(uid: String) {
+fun DashboardWaliScreen(
+    uid: String,
+    onNavigateToHistory: (String) -> Unit,
+    onLogoutClicked: () -> Unit
+) {
     val viewModel: DashboardWaliViewModel = viewModel(
         factory = DashboardWaliViewModelFactory(uid)
     )
@@ -52,18 +53,15 @@ fun DashboardWaliScreen(uid: String) {
         maximumFractionDigits = 0
     }
 
-    // Base color from reference image's background
-    val WaliBackground = Color(0xFFE5CCF2) // A light, soft lavender/purple
-
     // Gradient Background
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(WaliBackground)
+            .background(Purple50)
     ) {
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Purple300)
+                CircularProgressIndicator(color = PurplePrimary)
             }
         } else {
             Column(
@@ -80,15 +78,18 @@ fun DashboardWaliScreen(uid: String) {
                         .fillMaxWidth()
                         .padding(horizontal = 20.dp)
                 ) {
-                    // Back/Logout Icon (as per image, looks like a back/exit icon)
+                    // Logout Icon
                     Icon(
-                        imageVector = Icons.Default.West,
-                        contentDescription = "Back",
-                        tint = Purple300,
+                        imageVector = Icons.Default.Logout, // Changed icon here
+                        contentDescription = "Logout", // Updated content description
+                        tint = PurpleTextDeep,
                         modifier = Modifier
                             .size(28.dp)
                             .align(Alignment.CenterStart)
-                            .clickable { /* Handle Back/Logout */ }
+                            .clickable {
+                                // The action for logging out
+                                onLogoutClicked()
+                            }
                     )
 
                     // Welcome Text
@@ -99,7 +100,7 @@ fun DashboardWaliScreen(uid: String) {
                         Text(
                             text = "Welcome, Wali!",
                             fontSize = 16.sp,
-                            color = Purple300.copy(alpha = 0.8f),
+                            color = PurpleDark,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(4.dp))
@@ -108,7 +109,7 @@ fun DashboardWaliScreen(uid: String) {
                             text = state.username,
                             fontSize = 28.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF8E24AA) // Vibrant Purple
+                            color = PurplePrimary // Vibrant Primary Brand Color
                         )
                     }
                 }
@@ -157,7 +158,7 @@ fun DashboardWaliScreen(uid: String) {
                         .padding(horizontal = 24.dp)
                         .height(250.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(WaliBackground.copy(alpha = 0.8f)) // Match surrounding background
+                        .background(CardBg.copy(alpha = 0.5f)) // Subtle white/transparent background
                         .padding(vertical = 16.dp)
                 ) {
                     MonthlyLineChart(
@@ -169,7 +170,7 @@ fun DashboardWaliScreen(uid: String) {
                     Icon(
                         Icons.Default.ChevronLeft,
                         contentDescription = "Previous",
-                        tint = Purple300.copy(alpha = 0.8f),
+                        tint = PurpleDark,
                         modifier = Modifier
                             .size(32.dp)
                             .align(Alignment.CenterStart)
@@ -178,7 +179,7 @@ fun DashboardWaliScreen(uid: String) {
                     Icon(
                         Icons.Default.ChevronRight,
                         contentDescription = "Next",
-                        tint = Purple300.copy(alpha = 0.8f),
+                        tint = PurpleDark,
                         modifier = Modifier
                             .size(32.dp)
                             .align(Alignment.CenterEnd)
@@ -193,7 +194,7 @@ fun DashboardWaliScreen(uid: String) {
                     text = "Rincian Kategori",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Purple300,
+                    color = PurpleDark,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -231,42 +232,40 @@ fun DashboardWaliScreen(uid: String) {
                                 Text(
                                     text = category.name,
                                     fontSize = 14.sp,
-                                    color = Color.DarkGray
+                                    color = PurpleTextDeep // High contrast text
                                 )
                             }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(30.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
                 // --- LIHAT RIWAYAT BUTTON ---
-                Button(
-                    onClick = { /* Handle View History Click */ },
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD1C4E9)), // Lighter purple for button
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .height(60.dp)
-                        .shadow(4.dp, RoundedCornerShape(50), ambientColor = Color.Black.copy(alpha = 0.2f))
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+                        .background(Purple200) // Light Purple background for footer
+                        .clickable { onNavigateToHistory(uid) }
+                        .padding(vertical = 20.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "LIHAT RIWAYAT",
                             fontWeight = FontWeight.ExtraBold,
-                            color = Color(0xFF6A1B9A) // Darker text color
+                            color = PurpleTextDeep // Darker text color
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
                             Icons.Default.Visibility,
                             contentDescription = "View",
-                            tint = Color(0xFF6A1B9A),
+                            tint = PurpleTextDeep,
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
@@ -282,7 +281,8 @@ fun SaldoCard(
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFD1C4E9)), // Light purple color
+        // Using Purple100 (Light Purple) for the main card
+        colors = CardDefaults.cardColors(containerColor = Purple100),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = modifier
             .height(70.dp)
@@ -299,13 +299,13 @@ fun SaldoCard(
                 text = title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF6A1B9A) // Dark text
+                color = PurpleTextDeep
             )
             Text(
                 text = value,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color(0xFF6A1B9A)
+                color = PurpleTextDeep
             )
         }
     }
@@ -319,7 +319,8 @@ fun MiniSummaryCard(
 ) {
     Card(
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFEFE6F7)), // Very light purple
+        // Using CardBg (White) to pop against the Purple50 background
+        colors = CardDefaults.cardColors(containerColor = CardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = modifier
             .height(80.dp)
@@ -336,14 +337,14 @@ fun MiniSummaryCard(
                 text = title,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color(0xFF6A1B9A)
+                color = PurpleTextDeep
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = value,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF6A1B9A)
+                color = PurpleTextDeep
             )
         }
     }
@@ -351,10 +352,10 @@ fun MiniSummaryCard(
 
 @Composable
 fun MonthlyLineChart(monthlyData: List<MonthlyData>, modifier: Modifier = Modifier) {
-    val lineColor = Color(0xFF8E24AA) // Vibrant Purple for line
-    val areaColor = lineColor.copy(alpha = 0.2f) // Light shade for area
+    val lineColor = PurplePrimary // Main Brand Color for the line
+    val areaColor = lineColor.copy(alpha = 0.2f)
     val pointColor = Color.White
-    val labelColor = Color(0xFF6A1B9A) // Darker purple for labels
+    val labelColor = PurpleTextDeep // Readable labels
     val density = LocalDensity.current
 
     Canvas(modifier = modifier) {
@@ -372,7 +373,6 @@ fun MonthlyLineChart(monthlyData: List<MonthlyData>, modifier: Modifier = Modifi
         val points = dataPoints.mapIndexed { index, amount ->
             val x = paddingHorizontal + index * stepX
             val normalizedAmount = (amount - minAmount).toFloat() / range
-            // Y is normalized between padding top and bottom
             val y = size.height - paddingVertical - normalizedAmount * (size.height - 2 * paddingVertical)
             Offset(x, y)
         }
@@ -380,13 +380,8 @@ fun MonthlyLineChart(monthlyData: List<MonthlyData>, modifier: Modifier = Modifi
         // 1. Draw area gradient
         if (points.size > 1) {
             val path = Path().apply {
-                // Start at bottom left of the first point
                 moveTo(points.first().x, size.height - paddingVertical)
-
-                // Draw line through all points
                 points.forEach { p -> lineTo(p.x, p.y) }
-
-                // Close the path to the bottom right of the last point
                 lineTo(points.last().x, size.height - paddingVertical)
                 close()
             }
@@ -414,26 +409,23 @@ fun MonthlyLineChart(monthlyData: List<MonthlyData>, modifier: Modifier = Modifi
 
         // 3. Draw points and labels
         points.forEachIndexed { index, point ->
-            // Draw point circle (Line color)
             drawCircle(
                 color = lineColor,
                 center = point,
                 radius = 6f
             )
-            // Draw inner circle (White)
             drawCircle(
                 color = pointColor,
                 center = point,
                 radius = 3f
             )
 
-            // Draw X-axis labels (Month)
             with(density) {
                 drawContext.canvas.nativeCanvas.apply {
                     drawText(
                         monthlyData[index].month,
                         point.x,
-                        size.height - 5.dp.toPx(), // Position just above the bottom edge
+                        size.height - 5.dp.toPx(),
                         android.graphics.Paint().apply {
                             color = labelColor.toArgb()
                             textSize = 12.sp.toPx()
@@ -453,7 +445,7 @@ fun PieChart(data: List<CategorySummary>, modifier: Modifier = Modifier) {
     if (totalPercentage == 0f) return
 
     Canvas(modifier = modifier) {
-        var startAngle = -90f // Start from the top
+        var startAngle = -90f
         data.forEach { item ->
             val sweepAngle = item.percentage / totalPercentage * 360f
             drawArc(

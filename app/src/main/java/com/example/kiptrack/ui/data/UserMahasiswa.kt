@@ -5,14 +5,18 @@ data class UserMahasiswa(
     val nim: String = "",
     val nama: String = "",
 
-    // Field Data Dinamis (Nanti diisi oleh ViewModel setelah fetch DB)
+    // Field Data Dinamis
     val universityName: String = "Memuat...",
     val programStudiName: String = "Memuat...",
 
-    val jenjang: String = "S1", // Default, bisa diambil dari Prodi nanti
+    val jenjang: String = "S1",
     val semesterBerjalan: String = "1",
     val namaWali: String = "",
 
-    // Foto Profil (Base64 String)
-    val fotoProfil: String = ""
+    // Foto Profil
+    val fotoProfil: String = "",
+
+    // --- FIELD BARU UNTUK SISTEM SEMESTER ---
+    // Format contoh: "2025-JAN" atau "2025-JUL"
+    val lastUpdatePeriod: String = ""
 )
