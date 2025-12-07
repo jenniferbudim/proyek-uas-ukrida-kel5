@@ -3,91 +3,188 @@ package com.example.kiptrack.ui.viewmodel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.kiptrack.ui.data.CategorySummary
 import com.example.kiptrack.ui.data.MonthlyData
-import com.example.kiptrack.ui.data.UserWali
+import com.example.kiptrack.ui.data.Transaction
+import com.example.kiptrack.ui.theme.PieGreen
+import com.example.kiptrack.ui.theme.PieOrange
+import com.example.kiptrack.ui.theme.PieRed
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import androidx.compose.ui.graphics.Color
-import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 data class DashboardWaliUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
-    val username: String = "Wali",
-    val uid: String = "",
+    val username: String = "Wali", // Nama Wali
+    val studentName: String = "Mahasiswa", // Nama Anak
+
     val currentBalance: Long = 0L,
     val totalExpenditure: Long = 0L,
-    val totalViolations: Int = 0,
+    val totalViolations: Long = 0L,
+
     val monthlyExpenditure: List<MonthlyData> = emptyList(),
-    val categorySummary: List<CategorySummary> = emptyList()
+    val categorySummary: List<CategorySummary> = emptyList(),
+
+    val selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR),
+
+    // Cache data transaksi agar tidak fetch ulang saat ganti tahun
+    val allTransactions: List<Transaction> = emptyList()
 )
 
-class DashboardWaliViewModel(private val uid: String) : ViewModel() {
-    var uiState by mutableStateOf(DashboardWaliUiState(uid = uid))
+class DashboardWaliViewModel(private val waliUid: String) : ViewModel() {
+    var uiState by mutableStateOf(DashboardWaliUiState())
         private set
 
     private val db = FirebaseFirestore.getInstance()
 
     init {
-        if (uid.isNotBlank()) {
-            fetchWaliData()
-            loadMockFinancialData()
-        } else {
-            uiState = uiState.copy(isLoading = false, errorMessage = "UID Invalid")
+        if (waliUid.isNotBlank()) {
+            fetchData()
         }
     }
 
-    private fun fetchWaliData() = viewModelScope.launch {
+    fun nextYear() {
+        val newYear = uiState.selectedYear + 1
+        uiState = uiState.copy(selectedYear = newYear)
+        processGraphData(uiState.allTransactions, newYear)
+    }
+
+    fun previousYear() {
+        val newYear = uiState.selectedYear - 1
+        uiState = uiState.copy(selectedYear = newYear)
+        processGraphData(uiState.allTransactions, newYear)
+    }
+
+    private fun fetchData() = viewModelScope.launch {
+        uiState = uiState.copy(isLoading = true)
         try {
-            val userDoc = db.collection("users").document(uid).get().await()
-            if (userDoc.exists()) {
-                val waliData = UserWali(userDoc.data ?: emptyMap())
-                uiState = uiState.copy(
-                    username = waliData.nama.ifBlank { "Wali" },
-                    isLoading = false
-                )
-            } else {
-                uiState = uiState.copy(isLoading = false)
+            // 1. Ambil Data WALI untuk mendapatkan ID Mahasiswa
+            val waliDoc = db.collection("users").document(waliUid).get().await()
+            if (!waliDoc.exists()) {
+                uiState = uiState.copy(isLoading = false, errorMessage = "Data Wali tidak ditemukan")
+                return@launch
             }
+
+            val namaWali = waliDoc.getString("nama") ?: "Wali"
+            val studentUid = waliDoc.getString("id_mahasiswa") ?: ""
+
+            if (studentUid.isBlank()) {
+                uiState = uiState.copy(isLoading = false, username = namaWali, errorMessage = "Belum terhubung dengan mahasiswa")
+                return@launch
+            }
+
+            // 2. Ambil Data MAHASISWA (Saldo & Nama)
+            val studentDoc = db.collection("users").document(studentUid).get().await()
+            val studentName = studentDoc.getString("nama") ?: "Mahasiswa"
+            val currentBalance = studentDoc.getLong("saldo_saat_ini") ?: 0L
+
+            // 3. Ambil TRANSAKSI Mahasiswa
+            val trxSnapshot = db.collection("users").document(studentUid)
+                .collection("laporan_keuangan")
+                .get()
+                .await()
+
+            val categoryMap = mutableMapOf<String, Long>()
+            val transactionList = trxSnapshot.documents.map { doc ->
+                val data = doc.data ?: emptyMap()
+                val amount = (data["nominal"] as? Number)?.toLong() ?: 0L
+                val category = data["kategori"] as? String ?: "Lainnya"
+
+                // Hitung Kategori (SEMUA STATUS: Pending, Disetujui, Ditolak - Sesuai Request)
+                val currentCatTotal = categoryMap[category] ?: 0L
+                categoryMap[category] = currentCatTotal + amount
+
+                Transaction(
+                    id = doc.id,
+                    date = data["tanggal"] as? String ?: "",
+                    amount = amount,
+                    category = category,
+                    status = data["status"] as? String ?: "MENUNGGU",
+                    description = data["deskripsi"] as? String ?: ""
+                )
+            }
+
+            // 4. Hitung Statistik Global
+            val totalSpent = transactionList.sumOf { it.amount } // Semua status
+            val totalViolations = transactionList.filter { it.status == "DITOLAK" }.sumOf { it.amount } // Hanya yang ditolak
+
+            // 5. Generate Pie Chart Data
+            val pieData = generatePieData(categoryMap)
+
+            // 6. Update State Awal
+            uiState = uiState.copy(
+                isLoading = false,
+                username = namaWali,
+                studentName = studentName,
+                currentBalance = currentBalance,
+                totalExpenditure = totalSpent,
+                totalViolations = totalViolations,
+                categorySummary = pieData,
+                allTransactions = transactionList
+            )
+
+            // 7. Proses Grafik untuk Tahun Sekarang
+            processGraphData(transactionList, uiState.selectedYear)
+
         } catch (e: Exception) {
             uiState = uiState.copy(isLoading = false, errorMessage = "Error: ${e.message}")
         }
     }
 
-    private fun loadMockFinancialData() {
-        val monthlyData = listOf(
-            MonthlyData("JAN", 500000L),
-            MonthlyData("FEB", 800000L),
-            MonthlyData("MAR", 1200000L),
-            MonthlyData("APR", 700000L),
-            MonthlyData("MAY", 1500000L),
-            MonthlyData("JUN", 400000L),
-            MonthlyData("JUL", 1000000L),
-            MonthlyData("AUG", 900000L),
-            MonthlyData("SEP", 1300000L),
-            MonthlyData("OCT", 300000L),
-        )
+    private fun processGraphData(transactions: List<Transaction>, year: Int) {
+        val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
+        val monthlyTotals = MutableList(12) { 0L }
+        val monthNames = listOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
 
-        val totalExpenditure = monthlyData.sumOf { it.amount }
+        transactions.forEach { trx ->
+            try {
+                val date = dateFormat.parse(trx.date)
+                if (date != null) {
+                    val cal = Calendar.getInstance()
+                    cal.time = date
+                    if (cal.get(Calendar.YEAR) == year) {
+                        val monthIndex = cal.get(Calendar.MONTH)
+                        monthlyTotals[monthIndex] += trx.amount
+                    }
+                }
+            } catch (e: Exception) { }
+        }
 
-        // Updated colors to match the image reference: Red, Teal/Green, Orange
-        val categoryData = listOf(
-            CategorySummary("Makanan & Minuman", 60f, Color(0xFFD32F2F)), // Red
-            CategorySummary("Transportasi", 25f, Color(0xFF00A389)), // Teal/Green
-            CategorySummary("Sandang", 15f, Color(0xFFFF9800)), // Orange
-        )
+        val monthlyDataList = monthlyTotals.mapIndexed { index, total ->
+            MonthlyData(monthNames[index], total)
+        }
 
-        // Match the UI numbers provided in the image
-        uiState = uiState.copy(
-            currentBalance = 1_000_000L,
-            totalExpenditure = 1_500_000L,
-            totalViolations = 100_000,
-            monthlyExpenditure = monthlyData,
-            categorySummary = categoryData
-        )
+        uiState = uiState.copy(monthlyExpenditure = monthlyDataList)
+    }
+
+    private fun generatePieData(categoryMap: Map<String, Long>): List<CategorySummary> {
+        val total = categoryMap.values.sum().toFloat()
+        fun getColor(cat: String): Color {
+            return when(cat) {
+                "Makanan & Minuman" -> PieRed
+                "Transportasi" -> PieGreen
+                "Sandang" -> PieOrange
+                "Hunian" -> Color(0xFF5C6BC0)
+                "Pendidikan" -> Color(0xFFAB47BC)
+                "Kesehatan" -> Color(0xFFEF5350)
+                else -> Color.Gray
+            }
+        }
+
+        return categoryMap.map { (cat, amount) ->
+            CategorySummary(
+                name = cat,
+                percentage = if (total > 0) (amount / total) * 100f else 0f,
+                color = getColor(cat)
+            )
+        }.sortedByDescending { it.percentage }
     }
 }

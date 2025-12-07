@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.West
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -30,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.CategorySummary
 import com.example.kiptrack.ui.data.MonthlyData
-import com.example.kiptrack.ui.theme.* // Importing your Color.kt
+import com.example.kiptrack.ui.theme.*
 import com.example.kiptrack.ui.viewmodel.DashboardWaliViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardWaliViewModelFactory
 import java.text.NumberFormat
@@ -48,192 +47,93 @@ fun DashboardWaliScreen(
     val state = viewModel.uiState
     val scrollState = rememberScrollState()
 
-    // Indonesian Rupiah formatter, removing .00
     val formatter = NumberFormat.getNumberInstance(Locale("id", "ID")).apply {
         maximumFractionDigits = 0
     }
 
-    // Gradient Background
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Purple50)
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(Purple50)) {
         if (state.isLoading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = PurplePrimary)
             }
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState),
+                modifier = Modifier.fillMaxSize().verticalScroll(scrollState),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // --- HEADER SECTION ---
+                // --- HEADER ---
                 Spacer(modifier = Modifier.height(20.dp))
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp)
-                ) {
-                    // Logout Icon
+                Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                     Icon(
-                        imageVector = Icons.Default.Logout, // Changed icon here
-                        contentDescription = "Logout", // Updated content description
+                        imageVector = Icons.Default.Logout,
+                        contentDescription = "Logout",
                         tint = PurpleTextDeep,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .align(Alignment.CenterStart)
-                            .clickable {
-                                // The action for logging out
-                                onLogoutClicked()
-                            }
+                        modifier = Modifier.size(28.dp).align(Alignment.CenterStart).clickable { onLogoutClicked() }
                     )
-
-                    // Welcome Text
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Welcome, Wali!",
-                            fontSize = 16.sp,
-                            color = PurpleDark,
-                            fontWeight = FontWeight.Medium
-                        )
+                    Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Selamat Datang, ${state.username}!", fontSize = 16.sp, color = PurpleDark, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(4.dp))
-                        // User Name (Prominent)
-                        Text(
-                            text = state.username,
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PurplePrimary // Vibrant Primary Brand Color
-                        )
+                        Text(state.studentName, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PurplePrimary)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(30.dp))
 
-                // --- SALDO SAAT INI CARD ---
-                SaldoCard(
-                    title = "Saldo Saat Ini:",
-                    value = formatter.format(state.currentBalance),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
-                )
-
+                SaldoCard("Saldo Saat Ini:", "Rp ${formatter.format(state.currentBalance)}", Modifier.fillMaxWidth().padding(horizontal = 24.dp))
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // --- TOTAL PENGELUARAN & PELANGGARAN CARDS ---
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Total Pengeluaran
-                    MiniSummaryCard(
-                        title = "Total Pengeluaran",
-                        value = formatter.format(state.totalExpenditure),
-                        modifier = Modifier.weight(1f)
-                    )
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    MiniSummaryCard("Total Pengeluaran", "Rp ${formatter.format(state.totalExpenditure)}", Modifier.weight(1f))
                     Spacer(modifier = Modifier.width(16.dp))
-                    // Total Pelanggaran
-                    MiniSummaryCard(
-                        title = "Total Pelanggaran",
-                        value = formatter.format(state.totalViolations),
-                        modifier = Modifier.weight(1f)
-                    )
+                    MiniSummaryCard("Total Pelanggaran", "Rp ${formatter.format(state.totalViolations)}", Modifier.weight(1f))
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // --- MONTHLY CHART CONTAINER ---
+                // --- CHART WITH YEAR SELECTOR ---
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp)
-                        .height(250.dp)
+                        .height(280.dp) // Sedikit lebih tinggi untuk header tahun
                         .clip(RoundedCornerShape(12.dp))
-                        .background(CardBg.copy(alpha = 0.5f)) // Subtle white/transparent background
+                        .background(CardBg.copy(alpha = 0.5f))
                         .padding(vertical = 16.dp)
                 ) {
-                    MonthlyLineChart(
-                        monthlyData = state.monthlyExpenditure,
-                        modifier = Modifier.fillMaxSize().padding(horizontal = 30.dp)
-                    )
+                    Column {
+                        // Year Selector Header
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.ChevronLeft, "Prev", tint = PurpleDark, modifier = Modifier.size(32.dp).clickable { viewModel.previousYear() })
+                            Text(state.selectedYear.toString(), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PurpleTextDeep)
+                            Icon(Icons.Default.ChevronRight, "Next", tint = PurpleDark, modifier = Modifier.size(32.dp).clickable { viewModel.nextYear() })
+                        }
 
-                    // Chart Navigation Arrows
-                    Icon(
-                        Icons.Default.ChevronLeft,
-                        contentDescription = "Previous",
-                        tint = PurpleDark,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .align(Alignment.CenterStart)
-                            .clickable {}
-                    )
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = "Next",
-                        tint = PurpleDark,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .align(Alignment.CenterEnd)
-                            .clickable {}
-                    )
+                        // Chart
+                        MonthlyLineChart(
+                            monthlyData = state.monthlyExpenditure,
+                            modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp, vertical = 8.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // --- CATEGORY SUMMARY ---
-                Text(
-                    text = "Rincian Kategori",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PurpleDark,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                )
+                // --- CATEGORY ---
+                Text("Rincian Kategori", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PurpleDark, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp))
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Pie Chart
-                    PieChart(
-                        data = state.categorySummary,
-                        modifier = Modifier.size(150.dp)
-                    )
-
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    PieChart(state.categorySummary, Modifier.size(150.dp))
                     Spacer(modifier = Modifier.width(30.dp))
-
-                    // Legend
                     Column(modifier = Modifier.weight(1f)) {
                         state.categorySummary.forEach { category ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(12.dp)
-                                        .background(category.color)
-                                )
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 4.dp)) {
+                                Box(modifier = Modifier.size(12.dp).background(category.color))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = category.name,
-                                    fontSize = 14.sp,
-                                    color = PurpleTextDeep // High contrast text
-                                )
+                                Text("${category.name} (${category.percentage.toInt()}%)", fontSize = 14.sp, color = PurpleTextDeep)
                             }
                         }
                     }
@@ -241,29 +141,14 @@ fun DashboardWaliScreen(
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                // --- LIHAT RIWAYAT BUTTON ---
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
-                        .background(Purple200) // Light Purple background for footer
-                        .clickable { onNavigateToHistory(uid) }
-                        .padding(vertical = 20.dp),
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)).background(Purple200).clickable { onNavigateToHistory(uid) }.padding(vertical = 20.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "LIHAT RIWAYAT",
-                            fontWeight = FontWeight.ExtraBold,
-                            color = PurpleTextDeep // Darker text color
-                        )
+                        Text("LIHAT RIWAYAT", fontWeight = FontWeight.ExtraBold, color = PurpleTextDeep)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Icon(
-                            Icons.Default.Visibility,
-                            contentDescription = "View",
-                            tint = PurpleTextDeep,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        Icon(Icons.Default.Visibility, contentDescription = "View", tint = PurpleTextDeep, modifier = Modifier.size(20.dp))
                     }
                 }
             }
