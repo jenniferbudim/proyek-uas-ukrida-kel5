@@ -5,12 +5,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+
+// Kita ubah struktur data agar lebih mudah dikelola
+data class ProdiItem(val id: String, val nama: String, val jenjang: String)
 
 data class ListUniversitasUiState(
+    val isLoading: Boolean = true,
     val universityName: String = "Loading...",
-    val prodiList: List<String> = emptyList(), // List Nama Prodi
-    val prodiIds: List<String> = emptyList()   // List ID Prodi untuk navigasi
+    val prodiItems: List<ProdiItem> = emptyList(), // Menggunakan Object Item
+    val error: String? = null,
+    val actionSuccess: String? = null
 )
 
 class ListUniversitasViewModel(private val universityId: String) : ViewModel() {
@@ -18,12 +28,15 @@ class ListUniversitasViewModel(private val universityId: String) : ViewModel() {
         private set
 
     private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
 
     init {
         fetchData()
     }
 
     private fun fetchData() {
+        uiState = uiState.copy(isLoading = true)
+
         // 1. Ambil Nama Universitas
         db.collection("universitas").document(universityId).get()
             .addOnSuccessListener { doc ->
@@ -31,24 +44,32 @@ class ListUniversitasViewModel(private val universityId: String) : ViewModel() {
                 uiState = uiState.copy(universityName = name)
             }
 
-        // 2. Ambil List Prodi (Sub-Collection)
+        // 2. Ambil List Prodi Realtime (Agar auto-update saat ditambah/hapus)
         db.collection("universitas").document(universityId).collection("prodi")
-            .get()
-            .addOnSuccessListener { snapshot ->
-                val names = snapshot.documents.map { it.getString("nama") ?: "" }
-                val ids = snapshot.documents.map { it.id }
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    uiState = uiState.copy(isLoading = false, error = e.message)
+                    return@addSnapshotListener
+                }
+
+                val list = snapshot?.documents?.map { doc ->
+                    ProdiItem(
+                        id = doc.id,
+                        nama = doc.getString("nama") ?: "",
+                        jenjang = doc.getString("jenjang") ?: "S1"
+                    )
+                } ?: emptyList()
 
                 uiState = uiState.copy(
-                    prodiList = names,
-                    prodiIds = ids
+                    prodiItems = list,
+                    isLoading = false
                 )
             }
     }
 
-    // FUNGSI BARU: TAMBAH PRODI
+    // TAMBAH PRODI
     fun addProdi(namaProdi: String, jenjang: String, kategori: String) {
         val cleanNama = namaProdi.lowercase().replace(" ", "_")
-        // Format ID: prodi_akuntansi_univ_ukrida
         val newDocId = "prodi_${cleanNama}_$universityId"
 
         val data = hashMapOf(
@@ -60,13 +81,47 @@ class ListUniversitasViewModel(private val universityId: String) : ViewModel() {
         db.collection("universitas").document(universityId)
             .collection("prodi").document(newDocId)
             .set(data)
-            .addOnSuccessListener {
-                fetchData() // Refresh list setelah berhasil
-            }
-            .addOnFailureListener { e ->
-                println("Gagal tambah prodi: ${e.message}")
-            }
+            .addOnSuccessListener { uiState = uiState.copy(actionSuccess = "Berhasil menambah Prodi") }
+            .addOnFailureListener { e -> uiState = uiState.copy(error = e.message) }
     }
+
+    // UPDATE PRODI
+    fun updateProdi(prodiId: String, newName: String, newJenjang: String) = viewModelScope.launch {
+        try {
+            db.collection("universitas").document(universityId)
+                .collection("prodi").document(prodiId)
+                .update(
+                    mapOf("nama" to newName, "jenjang" to newJenjang)
+                ).await()
+            uiState = uiState.copy(actionSuccess = "Prodi berhasil diupdate")
+        } catch (e: Exception) {
+            uiState = uiState.copy(error = "Gagal update: ${e.message}")
+        }
+    }
+
+    // HAPUS PRODI (Dengan Password Admin)
+    fun deleteProdi(prodiId: String, passwordAdmin: String) = viewModelScope.launch {
+        val user = auth.currentUser
+        if (user == null || user.email == null) return@launch
+
+        try {
+            // Re-auth
+            val credential = EmailAuthProvider.getCredential(user.email!!, passwordAdmin)
+            user.reauthenticate(credential).await()
+
+            // Delete Firestore Document
+            db.collection("universitas").document(universityId)
+                .collection("prodi").document(prodiId)
+                .delete()
+                .await()
+
+            uiState = uiState.copy(actionSuccess = "Prodi berhasil dihapus")
+        } catch (e: Exception) {
+            uiState = uiState.copy(error = "Password salah atau gagal menghapus")
+        }
+    }
+
+    fun resetActionState() { uiState = uiState.copy(error = null, actionSuccess = null) }
 }
 
 class ListUniversitasViewModelFactory(private val universityId: String) : ViewModelProvider.Factory {

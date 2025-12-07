@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.kiptrack.ui.data.Cluster
 import com.example.kiptrack.ui.data.University
 import com.example.kiptrack.ui.data.UserAdmin
+import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.launch
@@ -21,7 +23,11 @@ data class DashboardAdminUiState(
     val searchQuery: String = "",
     val selectedTab: Int = 0,
     val universities: List<University> = emptyList(),
-    val clusters: List<Cluster> = emptyList()
+    val clusters: List<Cluster> = emptyList(),
+
+    // State untuk notifikasi aksi (Tambah/Hapus/Edit)
+    val actionSuccess: String? = null,
+    val actionError: String? = null
 )
 
 class DashboardAdminViewModel(private val uid: String) : ViewModel() {
@@ -29,6 +35,7 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
         private set
 
     private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
     private var univListener: ListenerRegistration? = null
     private var clusterListener: ListenerRegistration? = null
 
@@ -58,8 +65,6 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
         univListener = db.collection("universitas").addSnapshotListener { snapshot, e ->
             if (snapshot != null) {
                 val uniList = snapshot.documents.map { doc ->
-                    // PERBAIKAN UTAMA DI SINI:
-                    // Baca field 'wilayah_klaster' dengan aman (String atau Number)
                     val rawCluster = doc.get("wilayah_klaster")
                     val clusterValue = rawCluster?.toString() ?: "0"
 
@@ -79,14 +84,13 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
             if (snapshot != null) {
                 val clusterList = mutableListOf<Cluster>()
 
-                // Helper function untuk ambil angka dengan aman
                 fun getSafeLong(doc: com.google.firebase.firestore.DocumentSnapshot, field: String): Long {
                     return try {
                         doc.getLong(field) ?: doc.getString(field)?.toLongOrNull() ?: 0L
                     } catch (e: Exception) { 0L }
                 }
 
-                // Ambil Non-Kedokteran
+                // Non-Kedokteran
                 val docNonKed = snapshot.documents.find { it.id == "aturan_biaya_hidup_non-kedokteran" }
                 docNonKed?.let { doc ->
                     for (i in 1..5) {
@@ -95,7 +99,7 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
                     }
                 }
 
-                // Ambil Kedokteran
+                // Kedokteran
                 val docKed = snapshot.documents.find { it.id == "aturan_biaya_hidup_kedokteran" }
                 docKed?.let { doc ->
                     for (i in 1..5) {
@@ -109,38 +113,66 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
         }
     }
 
-    // --- FITUR UPDATE UNIVERSITAS ---
+    // --- FITUR BARU: TAMBAH UNIVERSITAS ---
+    fun addUniversity(idUniv: String, namaKampus: String, akreditasi: String, klaster: String) = viewModelScope.launch {
+        try {
+            val data = hashMapOf(
+                "nama_kampus" to namaKampus,
+                "akreditasi" to akreditasi,
+                "wilayah_klaster" to (klaster.toLongOrNull() ?: 1)
+            )
+
+            // Gunakan ID inputan admin sebagai Document ID agar rapi
+            db.collection("universitas").document(idUniv).set(data).await()
+            uiState = uiState.copy(actionSuccess = "Universitas berhasil ditambahkan")
+        } catch (e: Exception) {
+            uiState = uiState.copy(actionError = "Gagal menambah: ${e.message}")
+        }
+    }
+
+    // --- UPDATE UNIVERSITAS ---
     fun updateUniversity(uniId: String, newAccreditation: String, newCluster: String) = viewModelScope.launch {
         try {
-            // Saat update, kita paksa simpan sebagai Number (Long) agar konsisten
             val clusterNumber = newCluster.toLongOrNull() ?: 0L
-
             db.collection("universitas").document(uniId)
                 .update(
                     mapOf(
                         "akreditasi" to newAccreditation,
-                        "wilayah_klaster" to clusterNumber // Simpan sebagai angka
+                        "wilayah_klaster" to clusterNumber
                     )
                 ).await()
+            uiState = uiState.copy(actionSuccess = "Universitas berhasil diupdate")
         } catch (e: Exception) {
-            println("Update Univ Error: ${e.message}")
+            uiState = uiState.copy(actionError = "Gagal update: ${e.message}")
         }
     }
 
-    // --- FITUR HAPUS UNIVERSITAS ---
-    fun deleteUniversity(uniId: String) = viewModelScope.launch {
+    // --- FITUR BARU: HAPUS UNIVERSITAS (DENGAN PASSWORD ADMIN) ---
+    fun deleteUniversityWithAuth(uniId: String, adminPassword: String) = viewModelScope.launch {
+        val user = auth.currentUser
+        if (user == null || user.email == null) {
+            uiState = uiState.copy(actionError = "Admin tidak terautentikasi")
+            return@launch
+        }
+
         try {
+            // 1. Re-auth Admin (Verifikasi Password)
+            val credential = EmailAuthProvider.getCredential(user.email!!, adminPassword)
+            user.reauthenticate(credential).await()
+
+            // 2. Hapus Dokumen Universitas
             db.collection("universitas").document(uniId).delete().await()
+
+            uiState = uiState.copy(actionSuccess = "Universitas berhasil dihapus")
         } catch (e: Exception) {
-            println("Delete Univ Error: ${e.message}")
+            uiState = uiState.copy(actionError = "Password salah atau gagal menghapus")
         }
     }
 
-    // --- FITUR UPDATE CLUSTER (NOMINAL) ---
+    // --- UPDATE CLUSTER ---
     fun updateCluster(clusterId: String, newNominal: Long) = viewModelScope.launch {
         val isKedokteran = clusterId.startsWith("ked_")
         val clusterNum = clusterId.last().toString()
-
         val docId = if (isKedokteran) "aturan_biaya_hidup_kedokteran" else "aturan_biaya_hidup_non-kedokteran"
         val fieldName = "klaster_$clusterNum"
 
@@ -148,18 +180,15 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
             db.collection("konfigurasi").document(docId)
                 .update(fieldName, newNominal)
                 .await()
+            uiState = uiState.copy(actionSuccess = "Cluster berhasil diupdate")
         } catch (e: Exception) {
-            println("Update Cluster Error: ${e.message}")
+            uiState = uiState.copy(actionError = "Gagal update: ${e.message}")
         }
     }
 
-    fun onSearchQueryChange(query: String) {
-        uiState = uiState.copy(searchQuery = query)
-    }
-
-    fun onTabSelected(index: Int) {
-        uiState = uiState.copy(selectedTab = index)
-    }
+    fun onSearchQueryChange(query: String) { uiState = uiState.copy(searchQuery = query) }
+    fun onTabSelected(index: Int) { uiState = uiState.copy(selectedTab = index) }
+    fun resetActionState() { uiState = uiState.copy(actionSuccess = null, actionError = null) }
 
     override fun onCleared() {
         super.onCleared()

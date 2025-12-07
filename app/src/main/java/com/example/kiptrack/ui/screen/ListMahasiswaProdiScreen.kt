@@ -1,6 +1,7 @@
 package com.example.kiptrack.ui.screen
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -29,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -55,6 +58,24 @@ fun ListMahasiswaProdiScreen(
     val uiState = viewModel.uiState
     val formState = viewModel.formState
     val context = LocalContext.current
+
+    // State Dialog Hapus
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedStudentId by remember { mutableStateOf("") }
+    var selectedStudentName by remember { mutableStateOf("") }
+
+    // Toast Handler untuk Delete
+    LaunchedEffect(uiState.deleteSuccess, uiState.deleteError) {
+        uiState.deleteSuccess?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            showDeleteDialog = false
+            viewModel.resetDeleteState()
+        }
+        uiState.deleteError?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.resetDeleteState()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -105,12 +126,28 @@ fun ListMahasiswaProdiScreen(
                         MahasiswaListItem(
                             name = mhs.nama,
                             nim = mhs.nim,
-                            onClick = { onNavigateToDetailMahasiswa(uid, mhs.uid) }
+                            onClick = { onNavigateToDetailMahasiswa(uid, mhs.uid) },
+                            onDeleteClick = {
+                                selectedStudentId = mhs.uid
+                                selectedStudentName = mhs.nama
+                                showDeleteDialog = true
+                            }
                         )
                     }
                 }
             }
         }
+    }
+
+    // --- DIALOG KONFIRMASI HAPUS DENGAN PASSWORD ---
+    if (showDeleteDialog) {
+        DeleteStudentDialog(
+            studentName = selectedStudentName,
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = { password ->
+                viewModel.deleteStudentWithAuth(selectedStudentId, password)
+            }
+        )
     }
 
     // --- DIALOG STEP 1: MAHASISWA ---
@@ -142,6 +179,50 @@ fun ListMahasiswaProdiScreen(
             )
         }
     }
+}
+
+// --- DIALOG HAPUS BARU ---
+@Composable
+fun DeleteStudentDialog(
+    studentName: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var password by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Hapus Mahasiswa", color = Color.Red, fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Text("Anda akan menghapus data '$studentName' beserta data Wali-nya secara permanen dari Database.")
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Masukkan Password Admin:", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    visualTransformation = PasswordVisualTransformation(),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Red,
+                        cursorColor = Color.Red
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(password) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                enabled = password.isNotBlank()
+            ) { Text("Hapus Permanen") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Batal", color = Color.Gray) }
+        }
+    )
 }
 
 @Composable
@@ -263,9 +344,8 @@ fun SemesterDropdown(maxSem: Int, current: String, onSelected: (String) -> Unit)
     }
 }
 
-// ... (MahasiswaListItem SAMA SEPERTI SEBELUMNYA)
 @Composable
-fun MahasiswaListItem(name: String, nim: String, onClick: () -> Unit) {
+fun MahasiswaListItem(name: String, nim: String, onClick: () -> Unit, onDeleteClick: () -> Unit) {
     Card(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Purple50.copy(alpha = 0.3f)),
@@ -274,18 +354,26 @@ fun MahasiswaListItem(name: String, nim: String, onClick: () -> Unit) {
     ) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier.size(48.dp).clip(CircleShape).background(Purple200),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(name.first().toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier = Modifier.size(48.dp).clip(CircleShape).background(Purple200),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(name.first().toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Purple300)
+                    Text("NIM: $nim", fontSize = 12.sp, color = Purple300.copy(alpha = 0.7f))
+                }
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Purple300)
-                Text("NIM: $nim", fontSize = 12.sp, color = Purple300.copy(alpha = 0.7f))
+
+            // Icon Hapus
+            IconButton(onClick = onDeleteClick) {
+                Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = Color.Red)
             }
         }
     }
