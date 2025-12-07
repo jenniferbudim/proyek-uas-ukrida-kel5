@@ -1,8 +1,8 @@
 package com.example.kiptrack.ui.screen
 
-import android.net.Uri
+import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -21,13 +22,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.canhub.cropper.CropImageContract
 import com.canhub.cropper.CropImageContractOptions
@@ -38,7 +43,6 @@ import com.example.kiptrack.ui.utils.ImageUtils
 import com.example.kiptrack.ui.viewmodel.ProfileMahasiswaViewModel
 import com.example.kiptrack.ui.viewmodel.ProfileMahasiswaViewModelFactory
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClicked: () -> Unit) {
     // Init ViewModel
@@ -48,12 +52,10 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
     val state = viewModel.uiState
     val context = LocalContext.current
 
-    // --- LOGIKA BARU: CROP IMAGE LAUNCHER ---
-    // Menggantikan launcher galeri biasa
+    // --- LOGIC: CROP IMAGE ---
     val imageCropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
             val uriContent = result.uriContent
-            // Jika berhasil crop, ambil URI dan konversi ke Base64
             if (uriContent != null) {
                 val base64 = ImageUtils.uriToBase64(context, uriContent)
                 if (base64 != null) {
@@ -65,21 +67,17 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
         }
     }
 
-    // Fungsi helper untuk memulai crop dengan settingan BULAT
     fun startCrop() {
         val options = CropImageContractOptions(
-            uri = null, // null artinya user akan diminta pilih dari galeri dulu
+            uri = null,
             cropImageOptions = CropImageOptions(
                 imageSourceIncludeGallery = true,
                 imageSourceIncludeCamera = true,
-                // Paksa crop berbentuk OVAL (Bulat)
                 cropShape = CropImageView.CropShape.OVAL,
-                // Paksa rasio 1:1
                 fixAspectRatio = true,
                 aspectRatioX = 1,
                 aspectRatioY = 1,
-                // Kompresi hasil crop
-                outputCompressFormat = android.graphics.Bitmap.CompressFormat.JPEG,
+                outputCompressFormat = Bitmap.CompressFormat.JPEG,
                 outputCompressQuality = 70,
                 outputRequestWidth = 500,
                 outputRequestHeight = 500
@@ -88,136 +86,203 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
         imageCropLauncher.launch(options)
     }
 
-    Scaffold(
-        containerColor = PurplePrimary, // Warna asli kode kamu
-        topBar = {
-            TopAppBar(
-                title = { Text("Profile Mahasiswa", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PurplePrimary) // Warna asli
+    // --- UI CONTENT ---
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Purple100, PurplePrimary)
+                )
+            )
+    ) {
+        // 1. Wavy Background Shape
+        Canvas(modifier = Modifier.fillMaxWidth().height(150.dp)) {
+            val path = Path().apply {
+                moveTo(0f, 0f)
+                lineTo(size.width, 0f)
+                lineTo(size.width, size.height * 0.5f)
+                quadraticBezierTo(
+                    size.width * 0.5f, size.height * 1.0f,
+                    0f, size.height * 0.3f
+                )
+                close()
+            }
+            drawPath(path = path, color = Purple50)
+        }
+
+        // 2. Custom Top Bar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 20.dp, start = 16.dp, end = 24.dp)
+                .zIndex(2f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconButton(onClick = onBackClicked) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = PurpleTextDeep,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Text(
+                text = "Profil Mahasiswa",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Purple300
             )
         }
-    ) { paddingValues ->
-        Column(
+
+        // 3. Main Content Wrapper
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .background(PurplePrimary) // Warna asli
+                // Bottom padding 40dp ensures the hanging button doesn't touch the screen edge
+                .padding(top = 90.dp, bottom = 40.dp, start = 20.dp, end = 20.dp),
+            contentAlignment = Alignment.TopCenter
         ) {
-            // --- HEADER (AVATAR & NAMA) ---
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 1. CONTAINER UTAMA (Tanpa Clip, agar kamera tidak terpotong)
-                Box(
-                    modifier = Modifier.size(84.dp)
-                ) {
-                    // A. Lingkaran Foto Profil
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .align(Alignment.Center)
-                            .clip(CircleShape)
-                            .background(AvatarBackground) // Warna asli
-                            .border(2.dp, Color.White, CircleShape)
-                            .clickable { startCrop() }, // <--- PANGGIL FUNGSI CROP DISINI
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (state.studentData.fotoProfil.isNotBlank()) {
-                            val bitmap = com.example.kiptrack.ui.utils.ImageUtils.base64ToBitmap(state.studentData.fotoProfil)
-                            if (bitmap != null) {
-                                Image(
-                                    bitmap = bitmap.asImageBitmap(),
-                                    contentDescription = "Profile",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
-                            } else {
-                                Icon(Icons.Default.Person, null, tint = PurplePrimary, modifier = Modifier.size(40.dp))
-                            }
-                        } else {
-                            Icon(Icons.Default.Person, null, tint = PurplePrimary, modifier = Modifier.size(40.dp))
-                        }
-                    }
 
-                    // B. Ikon Kamera (Mengapung di Pojok Kanan Bawah)
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .offset(x = (-2).dp, y = (-2).dp)
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color.White)
-                            .border(1.dp, AvatarBackground, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CameraAlt,
-                            contentDescription = "Edit Foto",
-                            tint = Purple300, // Warna asli
-                            modifier = Modifier.size(16.dp)
-                        )
+            // --- MAIN CARD (Behind Button) ---
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 50.dp, bottom = 25.dp), // Bottom padding = 25dp (Half button height) creates the overlap
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White), // Pure White Card
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    if (state.isLoading) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = PurplePrimary)
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(top = 60.dp, start = 20.dp, end = 20.dp), // No bottom padding here, handled by spacer
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            // Name
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = state.studentData.nama,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PurplePrimary
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+                            HorizontalDivider(color = Purple200.copy(alpha = 0.3f), thickness = 1.dp)
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Scrollable Fields
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                ProfileDetailFieldRefStyle("Nomor Induk Mahasiswa", state.studentData.nim)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                ProfileDetailFieldRefStyle("Universitas", state.studentData.universityName)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                ProfileDetailFieldRefStyle("Program Studi", state.studentData.programStudiName)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                ProfileDetailFieldRefStyle("Jenjang yang akan Ditempuh", state.studentData.jenjang)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                ProfileDetailFieldRefStyle("Semester Saat Ini", state.studentData.semesterBerjalan)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                ProfileDetailFieldRefStyle("Nama Orang Tua/Wali", state.studentData.namaWali)
+
+                                // Extra spacer so content isn't hidden by the floating button
+                                Spacer(modifier = Modifier.height(32.dp))
+                            }
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.width(20.dp))
-
-                // Nama & NIM
-                Column {
-                    Text(
-                        text = if (state.isLoading) "Memuat..." else state.studentData.nama,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
+                // --- FLOATING BUTTON (Overlapping Card Bottom) ---
+                Button(
+                    onClick = onLogoutClicked,
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple200), // Lavender color
+                    shape = RoundedCornerShape(15.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter) // Aligns to bottom of Box
+                        .height(50.dp)
+                        .width(150.dp) // Fixed width for pill look
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Logout,
+                        contentDescription = "Logout",
+                        tint = PurpleTextDeep, // Dark Purple Icon
+                        modifier = Modifier.size(24.dp)
                     )
+                    Spacer(Modifier.width(8.dp))
                     Text(
-                        text = if (state.isLoading) "..." else state.studentData.nim,
-                        fontSize = 14.sp,
-                        color = Color.White.copy(alpha = 0.8f)
+                        "Keluar",
+                        fontSize = 18.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
 
-            // --- DATA DETAIL ---
-            Surface(
-                modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 20.dp, vertical = 10.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = Color.White,
-                shadowElevation = 4.dp
+            // --- AVATAR (Floating on Top) ---
+            Box(
+                modifier = Modifier
+                    .size(110.dp)
+                    .zIndex(1f)
+                    .clip(CircleShape)
+                    .background(Purple300)
+                    .clickable { startCrop() },
+                contentAlignment = Alignment.Center
             ) {
-                if (state.isLoading) {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Purple300) }
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(24.dp).verticalScroll(rememberScrollState())
-                    ) {
-                        ProfileDetailFieldStandard("Universitas", state.studentData.universityName)
-                        Spacer(Modifier.height(16.dp))
-                        ProfileDetailFieldStandard("Program Studi", state.studentData.programStudiName)
-                        Spacer(Modifier.height(16.dp))
-                        ProfileDetailFieldStandard("Jenjang", state.studentData.jenjang)
-                        Spacer(Modifier.height(16.dp))
-                        ProfileDetailFieldStandard("Semester Saat Ini", state.studentData.semesterBerjalan)
-                        Spacer(Modifier.height(16.dp))
-                        ProfileDetailFieldStandard("Nama Wali", state.studentData.namaWali)
-
-                        Spacer(Modifier.height(32.dp))
-                        Button(
-                            onClick = onLogoutClicked,
-                            modifier = Modifier.fillMaxWidth(0.5f).height(48.dp).align(Alignment.CenterHorizontally),
-                            colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary), // Warna asli
-                            shape = RoundedCornerShape(50)
-                        ) {
-                            Text("Keluar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .background(AvatarBackground)
+                ) {
+                    if (state.studentData.fotoProfil.isNotBlank()) {
+                        val bitmap = ImageUtils.base64ToBitmap(state.studentData.fotoProfil)
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Profile",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.fillMaxSize().padding(10.dp))
                         }
+                    } else {
+                        Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.fillMaxSize().padding(10.dp))
                     }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .border(1.dp, Purple300, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Edit",
+                        tint = PurplePrimary,
+                        modifier = Modifier.size(14.dp)
+                    )
                 }
             }
         }
@@ -225,26 +290,25 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
 }
 
 @Composable
-fun ProfileDetailFieldStandard(label: String, value: String) {
+fun ProfileDetailFieldRefStyle(label: String, value: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = label,
             fontSize = 13.sp,
-            color = Purple300, // Warna asli
+            color = Purple300,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+            modifier = Modifier.padding(bottom = 6.dp)
         )
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Purple50) // Warna asli
-                .padding(vertical = 14.dp, horizontal = 16.dp)
+                .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp)) // Slightly off-white/grey for field bg
+                .padding(vertical = 12.dp, horizontal = 16.dp)
         ) {
             Text(
                 text = value,
-                fontSize = 16.sp,
-                color = PurpleTextDeep, // Warna asli
+                fontSize = 15.sp,
+                color = PurpleTextDeep,
                 fontWeight = FontWeight.SemiBold
             )
         }
