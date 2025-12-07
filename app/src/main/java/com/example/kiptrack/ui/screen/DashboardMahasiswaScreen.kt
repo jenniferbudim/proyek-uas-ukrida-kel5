@@ -16,10 +16,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -41,15 +40,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.ui.data.Transaction
+import com.example.kiptrack.ui.theme.PieOrange
+import com.example.kiptrack.ui.theme.PieRed
+import com.example.kiptrack.ui.theme.Purple100
 import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.theme.Purple50
+import com.example.kiptrack.ui.theme.PurpleDark
+import com.example.kiptrack.ui.theme.PurplePrimary
 import com.example.kiptrack.ui.utils.ImageUtils
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModelFactory
 import java.text.NumberFormat
 import java.util.Locale
 
-// Helper for formatting currency
+// Format rupiah
 fun formatRupiah(amount: Long): String {
     val formatter = NumberFormat.getCurrencyInstance(Locale("id", "ID"))
     formatter.maximumFractionDigits = 0
@@ -69,7 +73,6 @@ fun DashboardMahasiswaScreen(
     val state = viewModel.uiState
     val scrollState = rememberScrollState()
 
-    // --- STATE UNTUK BOTTOM SHEET ---
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
@@ -77,7 +80,7 @@ fun DashboardMahasiswaScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Purple50)
+                .background(Purple100)
                 .padding(paddingValues)
         ) {
             Column(
@@ -91,8 +94,8 @@ fun DashboardMahasiswaScreen(
                     text = "Dashboard Mahasiswa",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Purple300,
-                    modifier = Modifier.padding(top = 24.dp, bottom = 20.dp)
+                    color = PurplePrimary,
+                    modifier = Modifier.padding(top = 16.dp, bottom = 20.dp)
                 )
 
                 if (state.isLoading) {
@@ -119,7 +122,7 @@ fun DashboardMahasiswaScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // UPDATE: Tambahkan Callback onSeeAllClick
+                    // Callback onSeeAllClick
                     TransactionHistorySection(
                         transactions = state.transactionHistory,
                         onSeeAllClick = { showBottomSheet = true }
@@ -128,7 +131,7 @@ fun DashboardMahasiswaScreen(
                 }
             }
 
-            // --- BOTTOM SHEET (FULL HISTORY) ---
+            // Riwayat Pengeluaran lengkap
             if (showBottomSheet) {
                 ModalBottomSheet(
                     onDismissRequest = { showBottomSheet = false },
@@ -197,6 +200,7 @@ fun HeaderSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            // Profile & Name
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
@@ -242,23 +246,20 @@ fun HeaderSection(
                 )
             }
 
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            // Add Button
+            Box(
                 modifier = Modifier
-                    .clickable { onNavigateToLogForm(uid) }
-                    .padding(start = 8.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(PurplePrimary)
+                    .clickable { onNavigateToLogForm(uid) },
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "Tambah Laporan",
-                    fontSize = 10.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(bottom = 2.dp)
-                )
                 Icon(
-                    imageVector = Icons.Filled.AddCircle,
-                    contentDescription = "Add",
-                    tint = Purple300,
-                    modifier = Modifier.size(36.dp)
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "Add Report",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -284,6 +285,7 @@ fun SaldoChartSection(
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
 
+            // Saldo Title & Amount
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                 Text(
                     text = "Saldo Uang Saku",
@@ -295,17 +297,14 @@ fun SaldoChartSection(
                     text = formatRupiah(currentSaldo),
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Purple300,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                    color = PurpleDark,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
                 )
             }
 
-            HorizontalDivider(
-                thickness = 1.dp,
-                color = Color.Gray.copy(alpha = 0.1f),
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
+            Spacer(modifier = Modifier.height(16.dp))
 
+            // Stats Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -314,14 +313,14 @@ fun SaldoChartSection(
                     Text(
                         text = "Total Pelanggaran",
                         fontSize = 11.sp,
-                        color = Color.Red.copy(alpha = 0.8f),
+                        color = PieOrange.copy(alpha = 0.8f),
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         text = formatRupiah(totalViolations),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Red
+                        color = PieRed
                     )
                 }
 
@@ -336,44 +335,49 @@ fun SaldoChartSection(
                         text = formatRupiah(nextSemesterAllowance),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Purple300
+                        color = PurpleDark
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Year Selector
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
             ) {
                 IconButton(onClick = { onYearChange(-1) }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev", tint = Purple300)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev", tint = PurpleDark)
                 }
                 Text(
                     text = "$selectedYear",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Purple300,
+                    color = PurpleDark,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
                 IconButton(onClick = { onYearChange(1) }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next", tint = Purple300)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next", tint = PurpleDark)
                 }
             }
 
+            // Graph Area - INCREASED HEIGHT FOR DRAMA
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
-                    .padding(horizontal = 8.dp)
+                    .height(250.dp) // Changed from 150.dp to 250.dp
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Purple100)
+                    .padding(vertical = 12.dp, horizontal = 0.dp)
             ) {
                 LineChart(data = graphData, modifier = Modifier.fillMaxSize())
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Month Labels
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -382,7 +386,7 @@ fun SaldoChartSection(
                     Text(
                         text = month,
                         fontSize = 9.sp,
-                        color = Color.Gray,
+                        color = Purple300,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -395,29 +399,49 @@ fun SaldoChartSection(
 fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
     if (data.isEmpty()) return
 
+    // Define Purple200 locally if not in theme
+    val Purple200 = Color(0xFFCE93D8)
+
     val maxValue = data.maxOrNull()?.takeIf { it > 0 } ?: 1L
-    val minValue = 0L
 
     Canvas(modifier = modifier) {
         val width = size.width
         val height = size.height
-        val stepX = width / 11f
+        val totalPoints = 12 // Assumes 12 months
+        val stepX = width / (totalPoints - 1)
 
+        // 1. Draw Vertical Grid Lines (Purple200)
+        for (i in 0 until totalPoints) {
+            val x = i * stepX
+            drawLine(
+                color = Purple200,
+                start = Offset(x, 0f),
+                end = Offset(x, height),
+                strokeWidth = 1.dp.toPx()
+            )
+        }
+
+        // 2. Draw Graph Line & Points
         val path = Path()
         var previousPoint: Offset? = null
 
         data.forEachIndexed { index, value ->
-            val normalizedY = value.toFloat() / maxValue.toFloat()
-            val y = height - (normalizedY * height * 0.8f + height * 0.1f)
-            val x = index * stepX
+            if (index >= totalPoints) return@forEachIndexed
 
+            val normalizedY = value.toFloat() / maxValue.toFloat()
+
+            // UPDATED MATH: Uses 85% of height for the wave (vs 70% before)
+            // This makes the spikes taller and valleys deeper visually
+            val y = height - (normalizedY * height * 0.85f + height * 0.075f)
+
+            val x = index * stepX
             val currentPoint = Offset(x, y)
 
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
 
             if (previousPoint != null) {
                 drawLine(
-                    color = Purple300,
+                    color = PurpleDark,
                     start = previousPoint!!,
                     end = currentPoint,
                     strokeWidth = 2.dp.toPx(),
@@ -425,8 +449,8 @@ fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
                 )
             }
 
-            drawCircle(color = Purple300, radius = 3.dp.toPx(), center = currentPoint)
-            drawCircle(color = Color.White, radius = 1.5.dp.toPx(), center = currentPoint)
+            // Draw Dots
+            drawCircle(color = PurplePrimary, radius = 3.dp.toPx(), center = currentPoint)
 
             previousPoint = currentPoint
         }
@@ -436,7 +460,7 @@ fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
 @Composable
 fun TransactionHistorySection(
     transactions: List<Transaction>,
-    onSeeAllClick: () -> Unit // Parameter Baru: Callback saat klik lihat selengkapnya
+    onSeeAllClick: () -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -467,7 +491,6 @@ fun TransactionHistorySection(
                             .padding(20.dp)
                     )
                 } else {
-                    // Hanya Tampilkan 3 Teratas di Preview
                     transactions.take(3).forEach { transaction ->
                         TransactionItem(transaction)
                     }
@@ -476,23 +499,22 @@ fun TransactionHistorySection(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tombol Lihat Selengkapnya (Clickable)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onSeeAllClick() }, // Panggil Callback
+                    .clickable { onSeeAllClick() },
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "Lihat Selengkapnya",
                     fontSize = 12.sp,
-                    color = Color.LightGray
+                    color = Purple100
                 )
                 Icon(
                     Icons.Filled.KeyboardArrowDown,
                     contentDescription = null,
-                    tint = Color.LightGray,
+                    tint = Purple100,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -505,13 +527,13 @@ fun TransactionItem(transaction: Transaction) {
     val iconVector = when {
         transaction.isApproved -> Icons.Outlined.CheckCircle
         transaction.isRejected -> Icons.Filled.Cancel
-        else -> Icons.Filled.AccessTime // Atau Icons.Default.Warning jika mau
+        else -> Icons.Filled.AccessTime
     }
 
     val iconColor = when {
-        transaction.isApproved -> Color(0xFF00C853) // Hijau
-        transaction.isRejected -> Color(0xFFFF5252) // Merah
-        else -> Color(0xFFFFA000) // Kuning (Pending)
+        transaction.isApproved -> Color(0xFF00C853)
+        transaction.isRejected -> Color(0xFFFF5252)
+        else -> Color(0xFFFFA000)
     }
 
     Row(
@@ -567,19 +589,6 @@ fun TransactionItem(transaction: Transaction) {
                 fontWeight = FontWeight.Light
             )
         }
-    }
-}
-
-@Composable
-fun AsyncImageMock(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(Color(0xFFE0E0E0))
-            .border(1.dp, Color.White, CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("🧕", fontSize = 28.sp)
     }
 }
 
