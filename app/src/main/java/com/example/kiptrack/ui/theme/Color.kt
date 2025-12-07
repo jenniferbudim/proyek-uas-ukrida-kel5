@@ -33,4 +33,6 @@ val PieGreen = Color(0xFF009688)
 val PieOrange = Color(0xFFE64A19)
 val PieRed = Color(0xFFD32F2F)
 
+val Warning = Color(0xFFFFA000)
+
 val SuccessGreen = Color(0xFF388E3C)

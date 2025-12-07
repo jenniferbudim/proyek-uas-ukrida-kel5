@@ -44,11 +44,14 @@ import com.example.kiptrack.ui.data.Transaction
 import com.example.kiptrack.ui.theme.PieOrange
 import com.example.kiptrack.ui.theme.PieRed
 import com.example.kiptrack.ui.theme.Purple100
+import com.example.kiptrack.ui.theme.Purple200
 import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.theme.Purple50
 import com.example.kiptrack.ui.theme.PurpleDark
 import com.example.kiptrack.ui.theme.PurplePrimary
 import com.example.kiptrack.ui.theme.PurpleTextDeep
+import com.example.kiptrack.ui.theme.SuccessGreen
+import com.example.kiptrack.ui.theme.Warning
 import com.example.kiptrack.ui.utils.ImageUtils
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModelFactory
@@ -187,12 +190,13 @@ fun DashboardMahasiswaScreen(
         }
     }
 
-    // --- POPUP DETAIL TRANSAKSI ---
+    // POPUP DETAIL TRANSAKSI
     if (showDetailDialog && selectedTransaction != null) {
         val trx = selectedTransaction!!
         AlertDialog(
             onDismissRequest = { showDetailDialog = false },
-            containerColor = Color.White,
+            containerColor = Purple50,
+            modifier = Modifier.fillMaxWidth(0.9f),
             title = {
                 Text("Detail Transaksi", color = PurpleTextDeep, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             },
@@ -232,14 +236,14 @@ fun DashboardMahasiswaScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     val statusColor = when(trx.status) {
-                        "DISETUJUI" -> Color(0xFF00C853); "DITOLAK" -> Color(0xFFFF5252); else -> Color(0xFFFFA000)
+                        "DISETUJUI" -> SuccessGreen ; "DITOLAK" -> PieRed; else -> Warning
                     }
                     Text("Status: ${trx.status}", color = statusColor, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.End))
                 }
             },
             confirmButton = {
-                Button(onClick = { showDetailDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) {
-                    Text("Tutup")
+                Button(onClick = { showDetailDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = Purple200)) {
+                    Text("Tutup", color = PurpleDark)
                 }
             }
         )
@@ -415,9 +419,9 @@ fun TransactionItem(
         else -> Icons.Filled.AccessTime
     }
     val iconColor = when {
-        transaction.isApproved -> Color(0xFF00C853)
-        transaction.isRejected -> Color(0xFFFF5252)
-        else -> Color(0xFFFFA000)
+        transaction.isApproved -> SuccessGreen
+        transaction.isRejected -> PieRed
+        else -> Warning
     }
 
     Row(

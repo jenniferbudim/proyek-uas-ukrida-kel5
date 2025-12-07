@@ -14,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -23,11 +22,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -67,8 +67,8 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                     onClick = {
                         val selectedMillis = datePickerState.selectedDateMillis
                         if (selectedMillis != null) {
-                            val formatter = SimpleDateFormat("MMM dd/yyyy", Locale.US)
-                            val formattedDate = formatter.format(Date(selectedMillis)).uppercase()
+                            val formatter = SimpleDateFormat("dd / MM / yyyy", Locale.US)
+                            val formattedDate = formatter.format(Date(selectedMillis))
                             viewModel.onDateChange(formattedDate)
                         }
                         showDatePicker = false
@@ -119,60 +119,71 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
-                .background(PurplePrimary),
+                .height(240.dp)
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(Purple300, PurplePrimary)
+                    )
+                ),
             contentAlignment = Alignment.TopCenter
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 50.dp)
+                modifier = Modifier.padding(top = 40.dp)
             ) {
-                Text("Total Saat Ini", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "Total Saat Ini",
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Normal
+                )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = NumberUtils.formatRupiah(state.totalCalculated),
                     color = Color.White,
-                    fontSize = 38.sp,
+                    fontSize = 40.sp,
+                    fontFamily = FontFamily.Serif,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = state.totalSpelled,
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontSize = 14.sp,
-                    lineHeight = 18.sp,
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 13.sp,
+                    fontFamily = FontFamily.Serif,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 20.dp)
+                    lineHeight = 18.sp,
+                    modifier = Modifier.padding(horizontal = 30.dp)
                 )
             }
         }
-
-        Spacer(Modifier.height(8.dp))
 
         // --- Form Card Section ---
         Box(modifier = Modifier.fillMaxSize()) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = (-40).dp)
-                    .padding(horizontal = 16.dp)
-                    .fillMaxHeight(0.95f),
-                shape = RoundedCornerShape(16.dp),
+                    .offset(y = (-60).dp)
+                    .padding(horizontal = 20.dp)
+                    .fillMaxHeight(),
+                shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp),
                 color = Color.White,
-                shadowElevation = 8.dp
+                shadowElevation = 4.dp
             ) {
                 Column(
                     modifier = Modifier
-                        .padding(24.dp)
+                        .padding(horizontal = 24.dp, vertical = 24.dp)
                         .verticalScroll(scrollState),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "Tambah Laporan",
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
+                        fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.Bold,
                         color = PurpleDark,
-                        modifier = Modifier.padding(bottom = 24.dp)
+                        modifier = Modifier.padding(bottom = 20.dp)
                     )
 
                     // 1. Tanggal Pengeluaran
@@ -181,77 +192,104 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                         CustomTextFieldRef(
                             value = state.dateInput,
                             onValueChange = {},
-                            placeholder = "Pilih Tanggal",
-                            readOnly = true,
-                            trailingIcon = {
-                                Icon(Icons.Default.CalendarToday, null, tint = PurpleDark)
-                            }
+                            placeholder = "DD / MM / YYYY",
+                            readOnly = true
                         )
                         Box(modifier = Modifier.matchParentSize().clickable { showDatePicker = true })
                     }
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                    // 2. Kategori
+                    // 2. Kategori (UPDATED TO MATCH IMAGE EXACTLY)
                     FormLabelRef("Kategori Pengeluaran :")
-                    ExposedDropdownMenuBox(
-                        expanded = isExpanded,
-                        onExpandedChange = { isExpanded = !isExpanded },
-                        modifier = Modifier.fillMaxWidth()
+
+                    // Container for the whole dropdown block
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Purple100) // Solid Light Purple Background
                     ) {
-                        Box(
+                        // Header (Always Visible)
+                        Row(
                             modifier = Modifier
-                                .menuAnchor()
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Purple100)
-                                .clickable { isExpanded = true }
-                                .padding(horizontal = 16.dp, vertical = 16.dp)
+                                .clickable { isExpanded = !isExpanded }
+                                .padding(horizontal = 16.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = state.category ?: "Pilih Kategori",
-                                    color = if(state.category == null) PurpleDark.copy(alpha = 0.5f) else PurpleDark,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Icon(
-                                    imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                                    contentDescription = null,
-                                    tint = PurpleDark
-                                )
-                            }
+                            Text(
+                                text = if (state.category.isNullOrEmpty()) "Pilih Kategori" else state.category,
+                                color = PurpleDark,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = PurpleDark
+                            )
                         }
 
-                        ExposedDropdownMenu(
-                            expanded = isExpanded,
-                            onDismissRequest = { isExpanded = false },
-                            modifier = Modifier.background(Purple100)
-                        ) {
-                            ExpenseCategories.categories.forEach { category ->
-                                DropdownMenuItem(
-                                    text = { Text(category, color = PurpleDark, fontSize = 14.sp) },
-                                    onClick = {
-                                        viewModel.onCategoryChange(category)
-                                        isExpanded = false
+                        // Expanded List (Accordion style - pushes content down)
+                        if (isExpanded) {
+                            Divider(color = PurpleDark.copy(alpha = 0.1f), thickness = 1.dp)
+
+                            ExpenseCategories.categories.forEachIndexed { index, category ->
+                                val isSelected = state.category == category
+
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            viewModel.onCategoryChange(category)
+                                            isExpanded = false
+                                        }
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                                            // Conditional Border for Selected Item (The "Hunian" look)
+                                            .border(
+                                                width = if (isSelected) 1.dp else 0.dp,
+                                                color = if (isSelected) PurpleDark else Color.Transparent,
+                                                shape = RoundedCornerShape(4.dp)
+                                            )
+                                            .padding(vertical = 8.dp, horizontal = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = category,
+                                            color = PurpleDark,
+                                            fontSize = 14.sp,
+                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                            modifier = Modifier.padding(horizontal = 8.dp)
+                                        )
                                     }
-                                )
+
+                                    // Separator line (except for last item)
+                                    if (index < ExpenseCategories.categories.lastIndex) {
+                                        Divider(
+                                            color = PurpleDark.copy(alpha = 0.1f),
+                                            thickness = 1.dp,
+                                            modifier = Modifier.align(Alignment.BottomCenter)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
-                    Spacer(Modifier.height(20.dp))
+
+                    Spacer(Modifier.height(16.dp))
 
                     // 3. Deskripsi
                     FormLabelRef("Deskripsi Pengeluaran :")
                     CustomTextFieldRef(
                         value = state.description,
                         onValueChange = viewModel::onDescriptionChange,
-                        placeholder = "Masukkan Deskripsi"
+                        placeholder = "Masukkan Deskripsi Pengeluaran"
                     )
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(16.dp))
 
                     // 4 & 5. Kuantitas & Harga
                     Row(
@@ -263,7 +301,7 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                             CustomTextFieldRef(
                                 value = state.quantity,
                                 onValueChange = viewModel::onQuantityChange,
-                                placeholder = "Contoh: 1",
+                                placeholder = "Contoh : 2",
                                 keyboardType = KeyboardType.Number
                             )
                         }
@@ -272,34 +310,41 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                             CustomTextFieldRef(
                                 value = state.unitPrice,
                                 onValueChange = viewModel::onUnitPriceChange,
-                                placeholder = "Contoh: 15000",
+                                placeholder = "Contoh : 15000",
                                 keyboardType = KeyboardType.Number
                             )
                         }
                     }
-                    Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(16.dp))
 
                     // 6. Upload Bukti
                     FormLabelRef("Upload Bukti :")
                     Button(
                         onClick = { launcher.launch("image/*") },
-                        colors = ButtonDefaults.buttonColors(containerColor = if (state.photoBase64.isNotBlank()) Purple100 else Color.White),
-                        shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(vertical = 14.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(2.dp, RoundedCornerShape(12.dp))
+                            .border(1.dp, Purple100, RoundedCornerShape(8.dp))
                     ) {
-                        Icon(Icons.Filled.CloudUpload, null, tint = PurpleDark.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+                        Icon(
+                            Icons.Filled.CloudUpload,
+                            null,
+                            tint = PurpleDark.copy(alpha = 0.6f),
+                            modifier = Modifier.size(20.dp)
+                        )
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            text = if (state.photoBase64.isNotBlank()) "Foto Terpilih (Ganti?)" else "Pilih Foto dari Galeri",
-                            color = if (state.photoBase64.isNotBlank()) PurpleDark else Color.Gray.copy(alpha = 0.6f),
-                            fontSize = 14.sp
+                            text = if (state.photoBase64.isNotBlank()) "Foto Terpilih" else "Pilih Foto dari Galeri",
+                            color = PurpleDark.copy(alpha = 0.4f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal
                         )
+                        Spacer(Modifier.weight(1f))
                     }
 
-                    // --- [BARU] PREVIEW GAMBAR ---
+                    // --- PREVIEW GAMBAR ---
                     if (state.photoBase64.isNotBlank()) {
                         Spacer(Modifier.height(16.dp))
                         val bitmap = ImageUtils.base64ToBitmap(state.photoBase64)
@@ -307,9 +352,9 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(200.dp) // Tinggi Preview
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .border(1.dp, Purple100, RoundedCornerShape(12.dp))
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .border(1.dp, Purple100, RoundedCornerShape(8.dp))
                             ) {
                                 Image(
                                     bitmap = bitmap.asImageBitmap(),
@@ -321,7 +366,7 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                         }
                     }
 
-                    Spacer(Modifier.height(40.dp))
+                    Spacer(Modifier.height(30.dp))
 
                     // Buttons
                     Row(
@@ -332,10 +377,11 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                             onClick = onBackClicked,
                             colors = ButtonDefaults.buttonColors(containerColor = Purple100),
                             shape = RoundedCornerShape(50),
-                            modifier = Modifier.weight(1f).shadow(4.dp, RoundedCornerShape(50)),
+                            modifier = Modifier.weight(1f),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
                             contentPadding = PaddingValues(vertical = 12.dp)
                         ) {
-                            Text("KEMBALI", color = PurpleDark, fontWeight = FontWeight.Bold)
+                            Text("KEMBALI", color = PurpleDark, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
                         }
 
                         Button(
@@ -343,33 +389,32 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                             colors = ButtonDefaults.buttonColors(containerColor = Purple200),
                             shape = RoundedCornerShape(50),
                             enabled = !state.isLoading,
-                            modifier = Modifier.weight(1f).shadow(4.dp, RoundedCornerShape(50)),
+                            modifier = Modifier.weight(1f),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
                             contentPadding = PaddingValues(vertical = 12.dp)
                         ) {
                             if (state.isLoading) {
                                 CircularProgressIndicator(color = PurpleDark, modifier = Modifier.size(24.dp))
                             } else {
-                                Text("SIMPAN", color = PurpleDark, fontWeight = FontWeight.Bold)
+                                Text("SIMPAN", color = PurpleDark, fontWeight = FontWeight.Bold, fontFamily = FontFamily.Serif)
                             }
                         }
                     }
-                    Spacer(Modifier.height(32.dp))
+                    Spacer(Modifier.height(40.dp))
                 }
             }
         }
     }
 }
 
-// --- Helper Composables ---
-
 @Composable
 fun FormLabelRef(text: String) {
     Text(
         text = text,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        fontFamily = FontFamily.Serif,
         color = PurpleDark,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
     )
 }
 
@@ -386,7 +431,13 @@ fun CustomTextFieldRef(
         value = value,
         onValueChange = onValueChange,
         readOnly = readOnly,
-        placeholder = { Text(placeholder, color = Color.Gray.copy(alpha = 0.5f), fontSize = 14.sp) },
+        placeholder = {
+            Text(
+                placeholder,
+                color = PurpleDark.copy(alpha = 0.25f),
+                fontSize = 14.sp
+            )
+        },
         trailingIcon = trailingIcon,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
@@ -396,30 +447,13 @@ fun CustomTextFieldRef(
             disabledContainerColor = Color.White,
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent
+            disabledIndicatorColor = Color.Transparent,
+            focusedTextColor = PurpleDark,
+            unfocusedTextColor = PurpleDark
         ),
-        shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(12.dp))
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, Purple100, RoundedCornerShape(8.dp))
     )
-}
-
-@Composable
-fun UploadReceiptButtonRef() {
-    Button(
-        onClick = { /* Handle file selection */ },
-        colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-        shape = RoundedCornerShape(12.dp),
-        contentPadding = PaddingValues(vertical = 14.dp),
-        modifier = Modifier.fillMaxWidth().shadow(2.dp, RoundedCornerShape(12.dp))
-    ) {
-        Icon(Icons.Filled.CloudUpload, null, tint = PurpleDark.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(12.dp))
-        Text(
-            "Pilih Foto dari Galeri",
-            color = Color.Gray.copy(alpha = 0.6f),
-            fontWeight = FontWeight.Normal,
-            fontSize = 14.sp
-        )
-        Spacer(Modifier.weight(1f))
-    }
 }

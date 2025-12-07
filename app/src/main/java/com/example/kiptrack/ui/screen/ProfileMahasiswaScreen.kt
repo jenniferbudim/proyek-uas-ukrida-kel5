@@ -97,7 +97,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
             )
     ) {
         // 1. Wavy Background Shape
-        Canvas(modifier = Modifier.fillMaxWidth().height(150.dp)) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(200.dp)) {
             val path = Path().apply {
                 moveTo(0f, 0f)
                 lineTo(size.width, 0f)
@@ -153,9 +153,9 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                 Card(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(top = 50.dp, bottom = 25.dp), // Bottom padding = 25dp (Half button height) creates the overlap
+                        .padding(top = 50.dp, bottom = 25.dp),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White), // Pure White Card
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                 ) {
                     if (state.isLoading) {
@@ -170,7 +170,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Name
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = state.studentData.nama,
                                 fontSize = 22.sp,
@@ -199,10 +199,9 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                                 ProfileDetailFieldRefStyle("Semester Saat Ini", state.studentData.semesterBerjalan)
                                 Spacer(modifier = Modifier.height(12.dp))
                                 ProfileDetailFieldRefStyle("Nama Orang Tua/Wali", state.studentData.namaWali)
-
-                                // Extra spacer so content isn't hidden by the floating button
-                                Spacer(modifier = Modifier.height(32.dp))
                             }
+
+                            Spacer(modifier = Modifier.height(64.dp))
                         }
                     }
                 }

@@ -88,7 +88,7 @@ class DashboardMahasiswaViewModel(private val uid: String) : ViewModel() {
             }
         }
 
-        // 2. LISTEN TRANSAKSI (UPDATE: Mapping Field Lengkap)
+        // 2. LISTEN TRANSAKSI
         transactionListener = db.collection("users").document(uid)
             .collection("laporan_keuangan")
             .addSnapshotListener { snapshot, _ ->
