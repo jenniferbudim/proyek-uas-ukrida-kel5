@@ -34,6 +34,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -47,6 +48,7 @@ import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.theme.Purple50
 import com.example.kiptrack.ui.theme.PurpleDark
 import com.example.kiptrack.ui.theme.PurplePrimary
+import com.example.kiptrack.ui.theme.PurpleTextDeep
 import com.example.kiptrack.ui.utils.ImageUtils
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardMahasiswaViewModelFactory
@@ -75,6 +77,10 @@ fun DashboardMahasiswaScreen(
 
     var showBottomSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
+
+    // --- STATE POPUP DETAIL ---
+    var showDetailDialog by remember { mutableStateOf(false) }
+    var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
 
     Scaffold(modifier = Modifier.fillMaxSize()) { paddingValues ->
         Box(
@@ -122,16 +128,20 @@ fun DashboardMahasiswaScreen(
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Callback onSeeAllClick
+                    // Pass onClick to Section
                     TransactionHistorySection(
                         transactions = state.transactionHistory,
-                        onSeeAllClick = { showBottomSheet = true }
+                        onSeeAllClick = { showBottomSheet = true },
+                        onItemClick = { trx ->
+                            selectedTransaction = trx
+                            showDetailDialog = true
+                        }
                     )
                     Spacer(modifier = Modifier.height(30.dp))
                 }
             }
 
-            // Riwayat Pengeluaran lengkap
+            // --- BOTTOM SHEET LIST ---
             if (showBottomSheet) {
                 ModalBottomSheet(
                     onDismissRequest = { showBottomSheet = false },
@@ -144,31 +154,30 @@ fun DashboardMahasiswaScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 20.dp)
                     ) {
-                        // Header Bottom Sheet
                         Text(
                             text = "Semua Riwayat Pengeluaran",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Purple300,
-                            modifier = Modifier
-                                .padding(bottom = 16.dp)
-                                .align(Alignment.CenterHorizontally)
+                            modifier = Modifier.padding(bottom = 16.dp).align(Alignment.CenterHorizontally)
                         )
 
-                        // LazyColumn untuk Scroll List Penuh
                         LazyColumn(
-                            modifier = Modifier.fillMaxHeight(0.85f), // Tinggi Sheet 85% layar
+                            modifier = Modifier.fillMaxHeight(0.85f),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(bottom = 20.dp)
                         ) {
                             if (state.transactionHistory.isEmpty()) {
-                                item {
-                                    Text("Belum ada data.", color = Color.Gray, modifier = Modifier.padding(20.dp))
-                                }
+                                item { Text("Belum ada data.", color = Color.Gray, modifier = Modifier.padding(20.dp)) }
                             } else {
-                                // Tampilkan SEMUA data tanpa batasan
                                 items(state.transactionHistory) { transaction ->
-                                    TransactionItem(transaction)
+                                    TransactionItem(
+                                        transaction = transaction,
+                                        onClick = {
+                                            selectedTransaction = transaction
+                                            showDetailDialog = true
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -177,8 +186,75 @@ fun DashboardMahasiswaScreen(
             }
         }
     }
+
+    // --- POPUP DETAIL TRANSAKSI ---
+    if (showDetailDialog && selectedTransaction != null) {
+        val trx = selectedTransaction!!
+        AlertDialog(
+            onDismissRequest = { showDetailDialog = false },
+            containerColor = Color.White,
+            title = {
+                Text("Detail Transaksi", color = PurpleTextDeep, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    // Gambar
+                    if (trx.proofImage.isNotBlank()) {
+                        val bitmap = ImageUtils.base64ToBitmap(trx.proofImage)
+                        if (bitmap != null) {
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Bukti",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(1.dp, Color.LightGray, RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Box(Modifier.fillMaxWidth().height(150.dp).background(Color.LightGray)) { Text("Gambar rusak", Modifier.align(Alignment.Center)) }
+                        }
+                    } else {
+                        Box(Modifier.fillMaxWidth().height(150.dp).background(Color.LightGray)) { Text("Tidak ada bukti", Modifier.align(Alignment.Center)) }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Detail Teks
+                    DetailItemLabel("Tanggal", trx.date)
+                    DetailItemLabel("Kategori", trx.category)
+                    DetailItemLabel("Deskripsi", trx.description)
+                    DetailItemLabel("Harga Satuan", formatRupiah(trx.unitPrice))
+                    DetailItemLabel("Kuantitas", trx.quantity.toString())
+                    DetailItemLabel("Total", formatRupiah(trx.amount))
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    val statusColor = when(trx.status) {
+                        "DISETUJUI" -> Color(0xFF00C853); "DITOLAK" -> Color(0xFFFF5252); else -> Color(0xFFFFA000)
+                    }
+                    Text("Status: ${trx.status}", color = statusColor, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.End))
+                }
+            },
+            confirmButton = {
+                Button(onClick = { showDetailDialog = false }, colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary)) {
+                    Text("Tutup")
+                }
+            }
+        )
+    }
 }
 
+@Composable
+fun DetailItemLabel(label: String, value: String) {
+    Column(modifier = Modifier.padding(vertical = 4.dp)) {
+        Text(label, fontSize = 12.sp, color = PurpleTextDeep.copy(alpha = 0.7f))
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PurpleTextDeep)
+    }
+}
+
+// ... (HeaderSection, SaldoChartSection, LineChart SAMA SEPERTI SEBELUMNYA) ...
 @Composable
 fun HeaderSection(
     userName: String,
@@ -200,68 +276,30 @@ fun HeaderSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Profile & Name
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                 Box(
-                    modifier = Modifier
-                        .size(50.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE0E0E0))
-                        .clickable { onNavigateToProfile(uid) },
+                    modifier = Modifier.size(50.dp).clip(CircleShape).background(Color(0xFFE0E0E0)).clickable { onNavigateToProfile(uid) },
                     contentAlignment = Alignment.Center
                 ) {
                     if (photoProfile.isNotBlank()) {
                         val bitmap = ImageUtils.base64ToBitmap(photoProfile)
-                        if (bitmap != null) {
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "Profile User",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Text("🎓", fontSize = 28.sp)
-                        }
-                    } else {
-                        Text("🎓", fontSize = 28.sp)
-                    }
+                        if (bitmap != null) { Image(bitmap = bitmap.asImageBitmap(), contentDescription = "Profile", modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop) }
+                        else { Text("🎓", fontSize = 28.sp) }
+                    } else { Text("🎓", fontSize = 28.sp) }
                 }
-
                 Spacer(modifier = Modifier.width(14.dp))
-
                 Text(
                     buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = Purple300.copy(alpha = 0.8f), fontSize = 14.sp)) {
-                            append("Welcome, \n")
-                        }
-                        withStyle(style = SpanStyle(color = Purple300, fontWeight = FontWeight.Bold, fontSize = 18.sp)) {
-                            append(userName)
-                            append("!")
-                        }
+                        withStyle(style = SpanStyle(color = Purple300.copy(alpha = 0.8f), fontSize = 14.sp)) { append("Welcome, \n") }
+                        withStyle(style = SpanStyle(color = Purple300, fontWeight = FontWeight.Bold, fontSize = 18.sp)) { append("$userName!") }
                     },
                     lineHeight = 20.sp
                 )
             }
-
-            // Add Button
             Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(PurplePrimary)
-                    .clickable { onNavigateToLogForm(uid) },
+                modifier = Modifier.size(40.dp).clip(CircleShape).background(PurplePrimary).clickable { onNavigateToLogForm(uid) },
                 contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "Add Report",
-                    tint = Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+            ) { Icon(Icons.Filled.Add, contentDescription = "Add", tint = Color.White, modifier = Modifier.size(24.dp)) }
         }
     }
 }
@@ -276,120 +314,35 @@ fun SaldoChartSection(
     onYearChange: (Int) -> Unit
 ) {
     val months = listOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
-
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(20.dp)) {
-
-            // Saldo Title & Amount
             Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                Text(
-                    text = "Saldo Uang Saku",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Purple300
-                )
-                Text(
-                    text = formatRupiah(currentSaldo),
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PurpleDark,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
-                )
+                Text(text = "Saldo Uang Saku", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Purple300)
+                Text(text = formatRupiah(currentSaldo), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = PurpleDark, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp))
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            // Stats Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(horizontalAlignment = Alignment.Start) {
-                    Text(
-                        text = "Total Pelanggaran",
-                        fontSize = 11.sp,
-                        color = PieOrange.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = formatRupiah(totalViolations),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PieRed
-                    )
+                    Text(text = "Total Pelanggaran", fontSize = 11.sp, color = PieOrange.copy(alpha = 0.8f), fontWeight = FontWeight.SemiBold)
+                    Text(text = formatRupiah(totalViolations), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PieRed)
                 }
-
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "Sem. Depan",
-                        fontSize = 11.sp,
-                        color = Purple300,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = formatRupiah(nextSemesterAllowance),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PurpleDark
-                    )
+                    Text(text = "Sem. Depan", fontSize = 11.sp, color = Purple300, fontWeight = FontWeight.SemiBold)
+                    Text(text = formatRupiah(nextSemesterAllowance), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PurpleDark)
                 }
             }
-
             Spacer(modifier = Modifier.height(24.dp))
-
-            // Year Selector
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-            ) {
-                IconButton(onClick = { onYearChange(-1) }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Prev", tint = PurpleDark)
-                }
-                Text(
-                    text = "$selectedYear",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PurpleDark,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                IconButton(onClick = { onYearChange(1) }, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next", tint = PurpleDark)
-                }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                IconButton(onClick = { onYearChange(-1) }, modifier = Modifier.size(24.dp)) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Prev", tint = PurpleDark) }
+                Text(text = "$selectedYear", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PurpleDark, modifier = Modifier.padding(horizontal = 16.dp))
+                IconButton(onClick = { onYearChange(1) }, modifier = Modifier.size(24.dp)) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next", tint = PurpleDark) }
             }
-
-            // Graph Area - INCREASED HEIGHT FOR DRAMA
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp) // Changed from 150.dp to 250.dp
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Purple100)
-                    .padding(vertical = 12.dp, horizontal = 0.dp)
-            ) {
+            Box(modifier = Modifier.fillMaxWidth().height(250.dp).clip(RoundedCornerShape(12.dp)).background(Purple100).padding(vertical = 12.dp)) {
                 LineChart(data = graphData, modifier = Modifier.fillMaxSize())
             }
-
             Spacer(modifier = Modifier.height(12.dp))
-
-            // Month Labels
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                months.forEach { month ->
-                    Text(
-                        text = month,
-                        fontSize = 9.sp,
-                        color = Purple300,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                months.forEach { month -> Text(text = month, fontSize = 9.sp, color = Purple300, fontWeight = FontWeight.Medium) }
             }
         }
     }
@@ -398,69 +351,31 @@ fun SaldoChartSection(
 @Composable
 fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
     if (data.isEmpty()) return
-
-    // Define Purple200 locally if not in theme
     val Purple200 = Color(0xFFCE93D8)
-
     val maxValue = data.maxOrNull()?.takeIf { it > 0 } ?: 1L
-
     Canvas(modifier = modifier) {
-        val width = size.width
-        val height = size.height
-        val totalPoints = 12 // Assumes 12 months
-        val stepX = width / (totalPoints - 1)
-
-        // 1. Draw Vertical Grid Lines (Purple200)
-        for (i in 0 until totalPoints) {
-            val x = i * stepX
-            drawLine(
-                color = Purple200,
-                start = Offset(x, 0f),
-                end = Offset(x, height),
-                strokeWidth = 1.dp.toPx()
-            )
-        }
-
-        // 2. Draw Graph Line & Points
-        val path = Path()
-        var previousPoint: Offset? = null
-
+        val width = size.width; val height = size.height; val totalPoints = 12; val stepX = width / (totalPoints - 1)
+        for (i in 0 until totalPoints) { val x = i * stepX; drawLine(color = Purple200, start = Offset(x, 0f), end = Offset(x, height), strokeWidth = 1.dp.toPx()) }
+        val path = Path(); var previousPoint: Offset? = null
         data.forEachIndexed { index, value ->
             if (index >= totalPoints) return@forEachIndexed
-
             val normalizedY = value.toFloat() / maxValue.toFloat()
-
-            // UPDATED MATH: Uses 85% of height for the wave (vs 70% before)
-            // This makes the spikes taller and valleys deeper visually
             val y = height - (normalizedY * height * 0.85f + height * 0.075f)
-
-            val x = index * stepX
-            val currentPoint = Offset(x, y)
-
+            val x = index * stepX; val currentPoint = Offset(x, y)
             if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
-
-            if (previousPoint != null) {
-                drawLine(
-                    color = PurpleDark,
-                    start = previousPoint!!,
-                    end = currentPoint,
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round
-                )
-            }
-
-            // Draw Dots
+            if (previousPoint != null) { drawLine(color = PurpleDark, start = previousPoint!!, end = currentPoint, strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round) }
             drawCircle(color = PurplePrimary, radius = 3.dp.toPx(), center = currentPoint)
-
             previousPoint = currentPoint
         }
     }
 }
 
+// TransactionHistorySection with Click
 @Composable
 fun TransactionHistorySection(
     transactions: List<Transaction>,
-    onSeeAllClick: () -> Unit
+    onSeeAllClick: () -> Unit,
+    onItemClick: (Transaction) -> Unit // Added Callback
 ) {
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -469,67 +384,36 @@ fun TransactionHistorySection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(vertical = 16.dp)) {
-            Text(
-                text = "Riwayat Pengeluaran",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Purple300,
-                modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp)
-            )
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(horizontal = 16.dp)
-            ) {
+            Text(text = "Riwayat Pengeluaran", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Purple300, modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 12.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(horizontal = 16.dp)) {
                 if (transactions.isEmpty()) {
-                    Text(
-                        text = "Belum ada transaksi",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(20.dp)
-                    )
+                    Text(text = "Belum ada transaksi", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.align(Alignment.CenterHorizontally).padding(20.dp))
                 } else {
                     transactions.take(3).forEach { transaction ->
-                        TransactionItem(transaction)
+                        TransactionItem(transaction, onClick = { onItemClick(transaction) }) // Pass Click
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onSeeAllClick() },
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Lihat Selengkapnya",
-                    fontSize = 12.sp,
-                    color = Purple100
-                )
-                Icon(
-                    Icons.Filled.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = Purple100,
-                    modifier = Modifier.size(16.dp)
-                )
+            Row(modifier = Modifier.fillMaxWidth().clickable { onSeeAllClick() }, horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "Lihat Selengkapnya", fontSize = 12.sp, color = Purple100)
+                Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, tint = Purple100, modifier = Modifier.size(16.dp))
             }
         }
     }
 }
 
+// TransactionItem with Click
 @Composable
-fun TransactionItem(transaction: Transaction) {
+fun TransactionItem(
+    transaction: Transaction,
+    onClick: (() -> Unit)? = null // Make optional
+) {
     val iconVector = when {
         transaction.isApproved -> Icons.Outlined.CheckCircle
         transaction.isRejected -> Icons.Filled.Cancel
         else -> Icons.Filled.AccessTime
     }
-
     val iconColor = when {
         transaction.isApproved -> Color(0xFF00C853)
         transaction.isRejected -> Color(0xFFFF5252)
@@ -541,53 +425,21 @@ fun TransactionItem(transaction: Transaction) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(Purple50.copy(alpha = 0.5f))
+            .clickable(enabled = onClick != null) { onClick?.invoke() } // Handle Click
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(
-                text = transaction.date.substringBefore("/"),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Purple300,
-                textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline
-            )
-            Text(
-                text = transaction.date.substringAfter("/"),
-                fontSize = 12.sp,
-                color = Purple300.copy(alpha = 0.7f)
-            )
+            Text(text = transaction.date.substringBefore("/"), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Purple300, textDecoration = TextDecoration.Underline)
+            Text(text = transaction.date.substringAfter("/"), fontSize = 12.sp, color = Purple300.copy(alpha = 0.7f))
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = formatRupiah(transaction.amount),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = Purple300
-            )
+            Text(text = formatRupiah(transaction.amount), fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = Purple300)
         }
-
         Column(horizontalAlignment = Alignment.End) {
-            Icon(
-                imageVector = iconVector,
-                contentDescription = transaction.status,
-                tint = iconColor,
-                modifier = Modifier
-                    .size(28.dp)
-                    .padding(bottom = 4.dp)
-            )
-            Text(
-                text = transaction.description,
-                fontSize = 14.sp,
-                color = Purple300,
-                fontWeight = FontWeight.Medium
-            )
-            Text(
-                text = transaction.status,
-                fontSize = 10.sp,
-                color = iconColor,
-                fontWeight = FontWeight.Light
-            )
+            Icon(imageVector = iconVector, contentDescription = transaction.status, tint = iconColor, modifier = Modifier.size(28.dp).padding(bottom = 4.dp))
+            Text(text = transaction.description, fontSize = 14.sp, color = Purple300, fontWeight = FontWeight.Medium, maxLines = 1)
+            Text(text = transaction.status, fontSize = 10.sp, color = iconColor, fontWeight = FontWeight.Light)
         }
     }
 }
