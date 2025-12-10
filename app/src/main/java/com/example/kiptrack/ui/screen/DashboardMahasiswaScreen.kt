@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -196,7 +197,10 @@ fun DashboardMahasiswaScreen(
         AlertDialog(
             onDismissRequest = { showDetailDialog = false },
             containerColor = Purple50,
-            modifier = Modifier.fillMaxWidth(0.9f),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
             title = {
                 Text("Detail Transaksi", color = PurpleTextDeep, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             },

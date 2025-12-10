@@ -9,11 +9,16 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.kiptrack.ui.data.CategorySummary
 import com.example.kiptrack.ui.data.Transaction
-import com.example.kiptrack.ui.theme.PieGreen
-import com.example.kiptrack.ui.theme.PieOrange
-import com.example.kiptrack.ui.theme.PieRed
+import com.example.kiptrack.ui.theme.color1
+import com.example.kiptrack.ui.theme.color2
+import com.example.kiptrack.ui.theme.color3
+import com.example.kiptrack.ui.theme.color4
+import com.example.kiptrack.ui.theme.color5
+import com.example.kiptrack.ui.theme.color6
+import com.example.kiptrack.ui.theme.color7
+import com.example.kiptrack.ui.theme.color8
+import com.example.kiptrack.ui.theme.color9
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
@@ -182,6 +187,8 @@ class DetailMahasiswaViewModel(
                 val data = doc.data ?: emptyMap()
                 val amount = (data["nominal"] as? Number)?.toLong() ?: 0L
                 val status = data["status"] as? String ?: "MENUNGGU"
+
+                // 1. Kamu sudah mengambil datanya di sini (BENAR)
                 val categoryName = data["kategori"] as? String ?: "Lainnya"
 
                 if (status == "DISETUJUI") {
@@ -189,18 +196,23 @@ class DetailMahasiswaViewModel(
                     categoryMap[categoryName] = currentTotal + amount
                 }
 
+                // 2. MASALAHNYA DISINI: Variabel categoryName tidak dimasukkan ke constructor Transaction
                 Transaction(
                     id = doc.id,
                     date = data["tanggal"] as? String ?: "",
                     description = data["deskripsi"] as? String ?: "",
                     amount = amount,
                     status = status,
+
+                    // --- PERBAIKAN: Tambahkan baris ini ---
+                    category = categoryName,
+                    // --------------------------------------
+
                     quantity = (data["kuantitas"] as? Number)?.toInt() ?: 1,
                     unitPrice = (data["harga_satuan"] as? Number)?.toLong() ?: 0L,
                     proofImage = data["bukti_base64"] as? String ?: ""
                 )
             }
-
             // Sorting Terbaru
             val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
             val sortedList = list.sortedByDescending { trx ->
@@ -233,12 +245,15 @@ class DetailMahasiswaViewModel(
         val totalAmount = categoryMap.values.sum().toFloat()
         fun getColorForCategory(cat: String): Color {
             return when(cat) {
-                "Makanan & Minuman" -> PieRed
-                "Transportasi" -> PieGreen
-                "Sandang" -> PieOrange
-                "Hunian" -> Color(0xFF5C6BC0)
-                "Pendidikan" -> Color(0xFFAB47BC)
-                "Kesehatan" -> Color(0xFFEF5350)
+                "Makanan & Minuman" -> color1
+                "Transportasi" -> color2
+                "Sandang" -> color3
+                "Hunian" -> color4
+                "Pendidikan" -> color5
+                "Kesehatan" -> color6
+                "Belanja Rumah Tangga" -> color7
+                "Paket data/Pulsa" -> color8
+                "Keuangan" -> color9
                 else -> Color.Gray
             }
         }

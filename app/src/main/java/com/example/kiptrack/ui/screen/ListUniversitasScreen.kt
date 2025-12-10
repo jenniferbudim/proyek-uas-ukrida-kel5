@@ -293,8 +293,6 @@ fun ListUniversitasScreen(
     }
 }
 
-// --- ITEM COMPONENT (DIPERBAIKI JARAKNYA) ---
-
 @Composable
 fun ProgramStudiItem(
     prodi: ProdiItem,
@@ -305,21 +303,23 @@ fun ProgramStudiItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(170.dp) // Sedikit ditambah tingginya agar lebih lega
+            .height(180.dp) // Increased slightly for better spacing
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardPurpleBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        // CHANGE 1: Use a Column to stack Text Area above Button Area vertically
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
 
-            // Konten Teks
+            // --- TEXT CONTENT AREA ---
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    // UPDATE PADDING: Bawah ditambah (40.dp) agar teks "Sarjana" naik ke atas
-                    // dan tidak tertutup tombol Delete/Edit
-                    .padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 40.dp),
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(start = 12.dp, end = 12.dp, top = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
@@ -332,7 +332,8 @@ fun ProgramStudiItem(
                     textAlign = TextAlign.Center,
                     fontFamily = FontFamily.Serif,
                     maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 20.sp // Add line height for better readability on 2 lines
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -362,18 +363,20 @@ fun ProgramStudiItem(
                 )
             }
 
-            // --- TOMBOL EDIT & DELETE ---
+            // --- BUTTONS AREA ---
+            // Always sits at the bottom, never overlapped by text
             Row(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(10.dp), // Padding luar tombol
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxWidth()
+                    .padding(8.dp), // Padding from the edges of the card
+                horizontalArrangement = Arrangement.End, // Align to right
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // Tombol Edit
                 IconButton(
                     onClick = onEditClick,
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(36.dp) // Adjusted size slightly
                         .shadow(elevation = 2.dp, shape = CircleShape)
                         .background(Color.White, CircleShape)
                         .clip(CircleShape)
@@ -382,15 +385,17 @@ fun ProgramStudiItem(
                         imageVector = Icons.Outlined.Edit,
                         contentDescription = "Edit",
                         tint = MainPurple,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 // Tombol Delete
                 IconButton(
                     onClick = onDeleteClick,
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(36.dp)
                         .shadow(elevation = 2.dp, shape = CircleShape)
                         .background(Color.White, CircleShape)
                         .clip(CircleShape)
@@ -399,7 +404,7 @@ fun ProgramStudiItem(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete",
                         tint = Color.Red,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }

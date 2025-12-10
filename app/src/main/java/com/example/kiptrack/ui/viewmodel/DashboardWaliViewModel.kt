@@ -10,9 +10,15 @@ import androidx.lifecycle.viewModelScope
 import com.example.kiptrack.ui.data.CategorySummary
 import com.example.kiptrack.ui.data.MonthlyData
 import com.example.kiptrack.ui.data.Transaction
-import com.example.kiptrack.ui.theme.PieGreen
-import com.example.kiptrack.ui.theme.PieOrange
-import com.example.kiptrack.ui.theme.PieRed
+import com.example.kiptrack.ui.theme.color1
+import com.example.kiptrack.ui.theme.color2
+import com.example.kiptrack.ui.theme.color3
+import com.example.kiptrack.ui.theme.color4
+import com.example.kiptrack.ui.theme.color5
+import com.example.kiptrack.ui.theme.color6
+import com.example.kiptrack.ui.theme.color7
+import com.example.kiptrack.ui.theme.color8
+import com.example.kiptrack.ui.theme.color9
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -169,12 +175,15 @@ class DashboardWaliViewModel(private val waliUid: String) : ViewModel() {
         val total = categoryMap.values.sum().toFloat()
         fun getColor(cat: String): Color {
             return when(cat) {
-                "Makanan & Minuman" -> PieRed
-                "Transportasi" -> PieGreen
-                "Sandang" -> PieOrange
-                "Hunian" -> Color(0xFF5C6BC0)
-                "Pendidikan" -> Color(0xFFAB47BC)
-                "Kesehatan" -> Color(0xFFEF5350)
+                "Makanan & Minuman" -> color1
+                "Transportasi" -> color2
+                "Sandang" -> color3
+                "Hunian" -> color4
+                "Pendidikan" -> color5
+                "Kesehatan" -> color6
+                "Belanja Rumah Tangga" -> color7
+                "Paket data/Pulsa" -> color8
+                "Keuangan" -> color9
                 else -> Color.Gray
             }
         }

@@ -20,7 +20,7 @@ data class LogFormUiState(
     val isSuccess: Boolean = false,
     val errorMessage: String? = null,
 
-    // Default diisi tanggal hari ini
+    // Tanggal Input (Format: MMM dd/yyyy) -> DEC 10/2025
     val dateInput: String = SimpleDateFormat("MMM dd/yyyy", Locale.US).format(Date()).uppercase(),
     val description: String = "",
     val quantity: String = "",
@@ -38,7 +38,29 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
 
     private val db = FirebaseFirestore.getInstance()
 
-    fun onDateChange(value: String) { uiState = uiState.copy(dateInput = value) }
+    // --- FIX FORMAT TANGGAL ---
+    fun onDateChange(value: String) {
+        // Value yang diterima dari UI (DatePicker) biasanya "dd / MM / yyyy"
+        // Kita harus mengubahnya menjadi format standar "MMM dd/yyyy" (DEC 10/2025)
+        // Agar konsisten saat ditampilkan di list riwayat
+
+        try {
+            val inputFormat = SimpleDateFormat("dd / MM / yyyy", Locale.US)
+            val outputFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
+
+            val date = inputFormat.parse(value)
+            if (date != null) {
+                val formatted = outputFormat.format(date).uppercase()
+                uiState = uiState.copy(dateInput = formatted)
+            } else {
+                // Jika gagal parse, gunakan value mentah (fallback)
+                uiState = uiState.copy(dateInput = value)
+            }
+        } catch (e: Exception) {
+            uiState = uiState.copy(dateInput = value)
+        }
+    }
+
     fun onDescriptionChange(value: String) { uiState = uiState.copy(description = value) }
     fun onCategoryChange(value: String) { uiState = uiState.copy(category = value) }
     fun onPhotoSelected(base64: String) { uiState = uiState.copy(photoBase64 = base64) }
@@ -84,7 +106,7 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
             val price = uiState.unitPrice.toLongOrNull() ?: 0L
 
             val reportData = hashMapOf(
-                "tanggal" to uiState.dateInput,
+                "tanggal" to uiState.dateInput, // Format sudah "DEC 10/2025"
                 "deskripsi" to uiState.description,
                 "kategori" to uiState.category,
                 "kuantitas" to qty,
@@ -100,17 +122,11 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
                 val userRef = db.collection("users").document(uid)
                 val reportRef = userRef.collection("laporan_keuangan").document() // Auto ID
 
-                // 1. Ambil Saldo Saat Ini
                 val snapshot = transaction.get(userRef)
                 val currentSaldo = snapshot.getLong("saldo_saat_ini") ?: 0L
-
-                // 2. Hitung Saldo Baru
                 val newSaldo = currentSaldo - totalNominal
 
-                // 3. Update Saldo User
                 transaction.update(userRef, "saldo_saat_ini", newSaldo)
-
-                // 4. Simpan Laporan
                 transaction.set(reportRef, reportData)
             }.await()
 

@@ -29,10 +29,28 @@ val BackgroundGradientEnd = Color(0xFFEDE7F6)
 
 val CardBg = Color.White
 
-val PieGreen = Color(0xFF009688)
+val PieGreen = Color(0xFF77BB9F)
 val PieOrange = Color(0xFFE64A19)
 val PieRed = Color(0xFFD32F2F)
 
 val Warning = Color(0xFFFFA000)
 
 val SuccessGreen = Color(0xFF388E3C)
+
+val color1 = Color(0xFF81C7E0)
+
+val color2 = Color(0xFFA5D6A7)
+
+val color3 = Color(0xFFFFD580)
+
+val color4 = Color(0xFFF48FCF)
+
+val color5 = Color(0xFFB39DDB)
+
+val color6 =Color(0xFFFFAB91)
+
+val color7 = Color(0xFFFF8080)
+
+val color8 = Color(0xFF80CBC4)
+
+val color9 = Color(0xFFB0BEC5)
