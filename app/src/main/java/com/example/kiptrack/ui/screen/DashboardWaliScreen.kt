@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -107,12 +108,10 @@ fun DashboardWaliScreen(
                             text = state.studentName,
                             fontSize = 26.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PurpleDark, // Darker purple for the name
+                            color = PurpleDark,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
                         )
                     }
-
-                    // Empty Box to balance the row so text stays centered
                     Box(modifier = Modifier.size(32.dp))
                 }
 
@@ -155,13 +154,13 @@ fun DashboardWaliScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Color.White) // <--- ADDED: White background for the main column
+                        .background(Color.White)
                         .padding(
                             horizontal = 24.dp,
                             vertical = 32.dp
                         )
                 ) {
-                    // 1. Year Selector (Inherits White background from the main Column)
+                    // 1. Year Selector
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -183,13 +182,13 @@ fun DashboardWaliScreen(
                         }
                     }
 
-                    // 2. Chart Box (Specific background: Purple50 - This remains unchanged)
+                    // 2. Chart Box
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(250.dp)
                             .shadow(2.dp, RoundedCornerShape(12.dp))
-                            .background(Purple50, RoundedCornerShape(12.dp)) // <--- Purple50 Background for the chart area
+                            .background(Purple50, RoundedCornerShape(12.dp))
                             .border(1.dp, Purple200.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                     ) {
                         MonthlyLineChart(
@@ -215,32 +214,55 @@ fun DashboardWaliScreen(
                         .padding(bottom = 16.dp)
                 )
 
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(horizontal = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    PieChart(state.categorySummary, Modifier.size(160.dp))
-
-                    Spacer(modifier = Modifier.width(24.dp))
-
-                    // Legend
-                    Column(modifier = Modifier.weight(1f)) {
-                        state.categorySummary.forEach { category ->
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(vertical = 6.dp)
+                    // 1. CHART (First Row)
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (state.categorySummary.isNotEmpty()) {
+                            PieChart(state.categorySummary, Modifier.size(160.dp))
+                        } else {
+                            Box(
+                                modifier = Modifier.size(160.dp)
+                                    .background(Color.LightGray, CircleShape),
+                                contentAlignment = Alignment.Center
                             ) {
-                                // Square color marker
-                                Box(
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .background(category.color)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
+                                Text("No Data", fontSize = 12.sp, color = Color.White)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 2. LEGEND (Second Row)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.Start,
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            state.categorySummary.forEach { category ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .background(
+                                                category.color,
+                                                shape = RoundedCornerShape(3.dp)
+                                            )
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+
                                     Text(
                                         text = "${category.name} (${category.percentage.toInt()}%)",
                                         fontSize = 14.sp,
@@ -260,7 +282,7 @@ fun DashboardWaliScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
-                        .background(Purple200) // Slightly darker header purple
+                        .background(Purple200)
                         .clickable { onNavigateToHistory(uid) }
                         .padding(vertical = 24.dp),
                     contentAlignment = Alignment.Center
@@ -288,7 +310,6 @@ fun DashboardWaliScreen(
 }
 
 // --- REFINED COMPONENTS ---
-
 @Composable
 fun SaldoCard(
     title: String,
@@ -297,7 +318,6 @@ fun SaldoCard(
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        // Matches the "Reference Image" light purple block
         colors = CardDefaults.cardColors(containerColor = Purple100),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = modifier
@@ -334,7 +354,7 @@ fun MiniSummaryCard(
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBg), // White
+        colors = CardDefaults.cardColors(containerColor = CardBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = modifier
             .height(90.dp)
@@ -367,10 +387,9 @@ fun MiniSummaryCard(
 @Composable
 fun MonthlyLineChart(monthlyData: List<MonthlyData>, modifier: Modifier = Modifier) {
     val lineColor = PurplePrimary
-    val areaColor = lineColor.copy(alpha = 0.1f) // Slightly more transparent area
+    val areaColor = lineColor.copy(alpha = 0.1f)
     val pointColor = Color.White
     val labelColor = PurpleTextDeep
-    // Made grid darker so it shows up on Purple50 background
     val gridColor = Purple300.copy(alpha = 0.6f)
     val density = LocalDensity.current
 
@@ -385,7 +404,7 @@ fun MonthlyLineChart(monthlyData: List<MonthlyData>, modifier: Modifier = Modifi
         // Padding config
         val paddingHorizontal = 24.dp.toPx()
         val paddingTop = 24.dp.toPx()
-        val paddingBottom = 32.dp.toPx() // Space for text
+        val paddingBottom = 32.dp.toPx()
 
         val chartHeight = size.height - paddingTop - paddingBottom
         val chartWidth = size.width - 2 * paddingHorizontal
@@ -416,7 +435,6 @@ fun MonthlyLineChart(monthlyData: List<MonthlyData>, modifier: Modifier = Modifi
             strokeWidth = 2f
         )
 
-        // Optional: Mid-line
         val midY = paddingTop + (chartHeight / 2)
         drawLine(
             color = gridColor,

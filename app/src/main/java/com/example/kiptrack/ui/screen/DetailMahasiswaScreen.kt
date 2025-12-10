@@ -53,23 +53,8 @@ import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.outlined.CheckCircle
 
-// --- COLOR PALETTE SESUAI FIGMA ---
-val FigmaBg1 = Color(0xFFDECDE9) // Posisi 0%
-val FigmaBg2 = Color(0xFFD3BDE2) // Posisi 10%
-val FigmaBg3 = Color(0xFFC9ADDB) // Posisi 20% & Sisa layar
-
-// Warna Card Summary (Posisi 16% & 88% C9ADDB)
+val FigmaBg2 = Color(0xFFD3BDE2)
 val FigmaCardColor1 = Color(0xFFF3EDF7)
-val FigmaCardColor2 = Color(0xFFDECDE9)
-
-val RedPink = Color(0xFFB14EA7)
-
-// Warna Tambahan untuk Elemen Lain
-val ColorTextDeep = Color(0xFF4A148C)       // Teks Ungu Tua
-val ColorChartBg = Color(0xFF9575CD)
-val ColorPieRed = Color(0xFFE53935)
-val ColorPieTeal = Color(0xFF009688)
-val ColorPieOrange = Color(0xFFFF9800)
 
 // Helper Format Rupiah
 fun formatRupiahDetail(amount: Long): String {
@@ -101,13 +86,12 @@ fun DetailMahasiswaScreen(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // --- BRUSH BACKGROUND UTAMA ---
-    // Ditaruh di Box paling luar agar full screen
     val backgroundBrush = Brush.verticalGradient(
         colorStops = arrayOf(
-            0.0f to FigmaBg1,
+            0.0f to Purple50,
             0.1f to FigmaBg2,
-            0.2f to FigmaBg3,
-            1.0f to FigmaBg3
+            0.2f to Purple100,
+            1.0f to Purple100
         )
     )
 
@@ -115,10 +99,10 @@ fun DetailMahasiswaScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundBrush) // Background Gradient diterapkan di sini
+            .background(backgroundBrush)
     ) {
         Scaffold(
-            containerColor = Color.Transparent, // Scaffold dibuat transparan
+            containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
                     title = {},
@@ -138,14 +122,13 @@ fun DetailMahasiswaScreen(
                     actions = {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(end = 16.dp) // Beri jarak dari pinggir kanan
+                            modifier = Modifier.padding(end = 16.dp)
                         ) {
-                            // Tampilkan Nama
                             Text(
                                 text = state.name,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp, // Ukuran disesuaikan agar muat di AppBar
-                                color = ColorTextDeep
+                                fontSize = 14.sp,
+                                color = TextPurpleDark
                             )
 
                             Spacer(modifier = Modifier.width(12.dp))
@@ -153,7 +136,7 @@ fun DetailMahasiswaScreen(
                             // Tampilkan Foto Profil
                             Box(
                                 modifier = Modifier
-                                    .size(36.dp) // Ukuran sedikit diperkecil untuk AppBar
+                                    .size(36.dp)
                                     .clip(CircleShape)
                                     .background(Color.White),
                                 contentAlignment = Alignment.Center
@@ -167,14 +150,14 @@ fun DetailMahasiswaScreen(
                                             contentDescription = null,
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .clickable { onNavigateToProfileAdmin(studentUid) }, // Pastikan ID benar
+                                                .clickable { onNavigateToProfileAdmin(studentUid) },
                                             contentScale = ContentScale.Crop
                                         )
                                     } else {
-                                        Icon(Icons.Filled.Person, null, tint = FigmaBg3)
+                                        Icon(Icons.Filled.Person, null, tint = Purple100)
                                     }
                                 } else {
-                                    Icon(Icons.Filled.Person, null, tint = FigmaBg3)
+                                    Icon(Icons.Filled.Person, null, tint = Purple100)
                                 }
                             }
                         }
@@ -205,7 +188,7 @@ fun DetailMahasiswaScreen(
                 Box(modifier = Modifier.weight(1f)) {
                     if (state.isLoading && state.name == "Loading...") {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = ColorTextDeep)
+                            CircularProgressIndicator(color = TextPurpleDark)
                         }
                     } else {
                         when (selectedTab) {
@@ -245,7 +228,7 @@ fun DetailMahasiswaScreen(
                     .padding(horizontal = 24.dp, vertical = 16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
-                Text("Detail Riwayat", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = ColorTextDeep, modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text("Detail Riwayat", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextPurpleDark, modifier = Modifier.align(Alignment.CenterHorizontally))
                 Spacer(modifier = Modifier.height(24.dp))
                 if (selectedLogDetail!!.proofImage.isNotBlank()) {
                     val bitmap = ImageUtils.base64ToBitmap(selectedLogDetail!!.proofImage)
@@ -262,14 +245,17 @@ fun DetailMahasiswaScreen(
                 DetailLabelValue("Tanggal", selectedLogDetail!!.date)
                 DetailLabelValue("Kategori", selectedLogDetail!!.category)
                 DetailLabelValue("Deskripsi", selectedLogDetail!!.description)
+
                 Row(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.weight(1f)) { DetailLabelValue("Kuantitas", selectedLogDetail!!.quantity.toString()) }
                     Column(modifier = Modifier.weight(1f)) { DetailLabelValue("Harga Satuan", formatRupiahDetail(selectedLogDetail!!.unitPrice)) }
                 }
+
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
+
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column { Text("Total", fontSize = 12.sp, color = Color.Gray); Text(formatRupiahDetail(selectedLogDetail!!.amount), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = ColorTextDeep) }
-                    val statusColor = when(selectedLogDetail!!.status) { "DISETUJUI" -> Color(0xFF4CAF50); "DITOLAK" -> Color.Red; else -> Color(0xFFFFC107) }
+                    Column { Text("Total", fontSize = 12.sp, color = Color.Gray); Text(formatRupiahDetail(selectedLogDetail!!.amount), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPurpleDark) }
+                    val statusColor = when(selectedLogDetail!!.status) { "DISETUJUI" -> SuccessGreen; "DITOLAK" -> PieRed; else -> Warning }
                     Surface(color = statusColor.copy(alpha = 0.1f), shape = RoundedCornerShape(50), border = androidx.compose.foundation.BorderStroke(1.dp, statusColor)) {
                         Text(text = selectedLogDetail!!.status, color = statusColor, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                     }
@@ -293,13 +279,11 @@ fun CommonHeader(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // --- BAGIAN ROW PROFIL LAMA DIHAPUS ---
-
         Spacer(modifier = Modifier.height(10.dp))
 
         // Saldo Center
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Saldo", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = RedPink.copy(alpha = 0.6f))
+            Text("Saldo", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PurplePrimary.copy(alpha = 0.6f))
             Text(
                 text = formatRupiahDetail(state.saldo).replace("Rp", "").trim(),
                 fontSize = 42.sp,
@@ -309,6 +293,7 @@ fun CommonHeader(
                     shadow = androidx.compose.ui.graphics.Shadow(Color.White.copy(0.5f), Offset(1f,1f), 2f)
                 )
             )
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -333,7 +318,7 @@ fun TabContentCharts(state: DetailMahasiswaUiState, viewModel: DetailMahasiswaVi
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = ColorChartBg.copy(alpha = 0.85f)), // Sedikit transparan biar menyatu
+                colors = CardDefaults.cardColors(containerColor = Purple300.copy(alpha = 0.85f)), // Sedikit transparan biar menyatu
                 elevation = CardDefaults.cardElevation(6.dp),
                 modifier = Modifier.fillMaxWidth().wrapContentHeight()
             ) {
@@ -348,11 +333,17 @@ fun TabContentCharts(state: DetailMahasiswaUiState, viewModel: DetailMahasiswaVi
                     Column(modifier = Modifier.padding(16.dp)) {
                         Box(modifier = Modifier.fillMaxWidth().height(180.dp)) {
                             if (state.graphData.any { it > 0 }) {
-                                CustomLineChartNew(state.graphData, Modifier.fillMaxSize().padding(bottom = 20.dp))
+                                CustomLineChartNew(state.graphData, Modifier.fillMaxSize().padding(bottom = 45.dp))
                             } else {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Data Kosong", color = Color.White.copy(0.7f)) }
                             }
-                            Row(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Row(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .padding(bottom = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 listOf("JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC").forEach {
                                     Text(it, fontSize = 9.sp, color = Color.White.copy(alpha = 0.8f))
                                 }
@@ -372,36 +363,74 @@ fun TabContentCharts(state: DetailMahasiswaUiState, viewModel: DetailMahasiswaVi
         item {
             Card(
                 shape = RoundedCornerShape(16.dp),
-                // Background kartu dibuat putih solid
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp) // Tambahan padding bawah agar aman dari bottom nav
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Rincian Kategori", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = RedPink); Spacer(modifier = Modifier.height(16.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
-                        if (state.categoryData.isNotEmpty()) CustomPieChart(data = state.categoryData, modifier = Modifier.size(120.dp))
-                        else Box(modifier = Modifier.size(120.dp).background(Color.LightGray, CircleShape), contentAlignment = Alignment.Center) { Text("No Data", fontSize = 10.sp, color = Color.White) }
+                Column(
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    // 1. Title
+                    Text(
+                        text = "Rincian Kategori",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = PurplePrimary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-                        // List Legend
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 2. Pie Chart
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (state.categoryData.isNotEmpty()) {
+                            CustomPieChart(data = state.categoryData, modifier = Modifier.size(140.dp))
+                        } else {
+                            Box(
+                                modifier = Modifier.size(140.dp).background(Color.LightGray, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No Data", fontSize = 10.sp, color = Color.White)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    // 3. Legend List
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                             state.categoryData.forEachIndexed { _, cat ->
                                 val color = cat.color
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Box(
                                         modifier = Modifier
-                                            .size(12.dp)
-                                            .background(color, RoundedCornerShape(2.dp))
+                                            .size(16.dp)
+                                            .background(color, RoundedCornerShape(4.dp))
                                     )
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
                                     Text(
                                         text = "${cat.name} (${cat.percentage.toInt()}%)",
-                                        fontSize = 12.sp,
-                                        color = ColorTextDeep
+                                        fontSize = 14.sp,
+                                        color = TextPurpleDark
                                     )
                                 }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
         }
@@ -411,44 +440,40 @@ fun TabContentCharts(state: DetailMahasiswaUiState, viewModel: DetailMahasiswaVi
 // --- CARD SUMMARY DENGAN GRADIENT ---
 @Composable
 fun SummaryCardFigma(title: String, value: String, modifier: Modifier = Modifier) {
-    // 1. Mengubah background menjadi Gradient FigmaBg1 -> FigmaBg2
     val cardBrush = Brush.verticalGradient(
-        colors = listOf(FigmaCardColor1, FigmaCardColor2)
+        colors = listOf(FigmaCardColor1, Purple50)
     )
 
     Card(
         modifier = modifier.height(100.dp),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(2.dp)
-        // Container color dibiarkan default/transparan karena akan ditimpa oleh Box di dalamnya
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(cardBrush) // Gradient diterapkan di sini
+                .background(cardBrush)
                 .padding(12.dp)
         ) {
             Column(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 2. Mengubah warna tulisan judul menjadi RedPink
                 Text(
                     text = title,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = RedPink,
+                    color = PurplePrimary,
                     textAlign = TextAlign.Center
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 3. Mengubah warna nominal menjadi ColorTextDeep
                 Text(
                     text = value,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color = ColorTextDeep
+                    color = TextPurpleDark
                 )
             }
         }
@@ -473,15 +498,9 @@ fun CustomLineChartNew(data: List<Long>, modifier: Modifier = Modifier) {
 fun CustomPieChart(data: List<CategorySummary>, modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         var startAngle = -90f
-
-        // Iterasi melalui data, di mana setiap item (CategorySummary) sudah membawa properti 'color'
         data.forEach { item ->
             val sweepAngle = (item.percentage / 100f) * 360f
-
-            // Mengambil warna langsung dari item.color
             val color = item.color
-
-            // Menggambar irisan dengan warna yang telah ditentukan
             drawArc(
                 color = color,
                 startAngle = startAngle,
@@ -502,11 +521,9 @@ fun TabContentHistory(transactions: List<Transaction>, formatter: java.text.Numb
                 text = "Riwayat Pengeluaran",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp,
-                color = RedPink,
-                // Tambahkan TextAlign.Center
+                color = PurplePrimary,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
-                    // Tambahkan fillMaxWidth agar teks punya ruang untuk ke tengah
                     .fillMaxWidth()
                     .padding(bottom = 8.dp)
             )
@@ -526,7 +543,6 @@ fun TabContentDetail(
 ) {
     var localIndex by remember { mutableIntStateOf(0) }
 
-    // Logika sinkronisasi index (Tetap sama)
     LaunchedEffect(pendingList.size) {
         if (localIndex >= pendingList.size && pendingList.isNotEmpty()) {
             localIndex = pendingList.size - 1
@@ -536,37 +552,31 @@ fun TabContentDetail(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp), // Padding luar agar tidak nempel banget ke layar HP
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         if (pendingList.isEmpty()) {
-            // Tampilan Kosong (Tetap sama)
             Icon(Icons.Outlined.CheckCircle, null, tint = Color.Gray, modifier = Modifier.size(64.dp))
             Spacer(Modifier.height(16.dp))
             Text("Semua transaksi aman.", color = Color.Gray)
         } else {
             val transaction = pendingList.getOrElse(localIndex) { pendingList[0] }
-
-            // --- PERUBAHAN UI DIMULAI DISINI ---
-
-            // 1. Card Utama (Warna Putih) - Menggunakan fillMaxWidth
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f) // Agar tinggi menyesuaikan sisa layar tapi tidak overflow
+                    .weight(1f)
                     .padding(vertical = 8.dp),
-                shape = RoundedCornerShape(24.dp), // Sudut lebih membulat sesuai referensi
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(8.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    // HEADER: Judul Konfirmasi
                     Text(
                         text = "Konfirmasi",
-                        fontSize = 20.sp, // Sedikit lebih besar
+                        fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFB14EA7),
                         modifier = Modifier
@@ -589,18 +599,17 @@ fun TabContentDetail(
                             Icon(
                                 imageVector = Icons.Filled.KeyboardArrowLeft,
                                 contentDescription = "Prev",
-                                tint = if (localIndex > 0) ColorTextDeep else Color.LightGray,
+                                tint = if (localIndex > 0) TextPurpleDark else Color.LightGray,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
 
-                        // DETAIL CARD (Box Ungu Muda di dalam)
-                        // Menggunakan Box/Card lagi agar mirip referensi gambar
+                        // DETAIL CARD
                         Card(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxHeight()
-                                .padding(vertical = 8.dp), // Jarak atas bawah dari panah
+                                .padding(vertical = 8.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = CardDefaults.cardColors(containerColor = Color(0xFFF3EDF7)) // Warna Ungu Muda (FigmaCardColor1)
                         ) {
@@ -608,17 +617,17 @@ fun TabContentDetail(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(16.dp)
-                                    .verticalScroll(rememberScrollState()) // Scrollable jika konten panjang
+                                    .verticalScroll(rememberScrollState())
                             ) {
                                 // Detail Data
-                                DetailItemFigmaRef("Tanggal Pengeluaran :", transaction.date)
-                                DetailItemFigmaRef("Kategori Pengeluaran :", transaction.category)
-                                DetailItemFigmaRef("Deskripsi Pengeluaran :", transaction.description)
-                                DetailItemFigmaRef("Kuantitas :", transaction.quantity.toString())
-                                DetailItemFigmaRef("Harga Satuan :", formatRupiahDetail(transaction.amount))
+                                DetailTambahan("Tanggal Pengeluaran :", transaction.date)
+                                DetailTambahan("Kategori Pengeluaran :", transaction.category)
+                                DetailTambahan("Deskripsi Pengeluaran :", transaction.description)
+                                DetailTambahan("Kuantitas :", transaction.quantity.toString())
+                                DetailTambahan("Harga Satuan :", formatRupiahDetail(transaction.amount))
 
                                 Spacer(Modifier.height(8.dp))
-                                Text("Bukti :", fontSize = 12.sp, color = ColorTextDeep.copy(0.7f))
+                                Text("Bukti :", fontSize = 12.sp, color = TextPurpleDark.copy(0.7f))
                                 Spacer(Modifier.height(4.dp))
 
                                 // Gambar Bukti
@@ -632,8 +641,8 @@ fun TabContentDetail(
                                                 .fillMaxWidth()
                                                 .height(200.dp)
                                                 .clip(RoundedCornerShape(8.dp))
-                                                .background(Color.White), // Background putih buat gambar
-                                            contentScale = ContentScale.Crop // atau Fit agar full terlihat
+                                                .background(Color.White),
+                                            contentScale = ContentScale.Crop
                                         )
                                     } else {
                                         Box(Modifier.fillMaxWidth().height(100.dp).background(Color.White), contentAlignment = Alignment.Center) { Text("Gambar Error", fontSize = 10.sp) }
@@ -652,25 +661,24 @@ fun TabContentDetail(
                             Icon(
                                 imageVector = Icons.Filled.KeyboardArrowRight,
                                 contentDescription = "Next",
-                                tint = if (localIndex < pendingList.size - 1) ColorTextDeep else Color.LightGray,
+                                tint = if (localIndex < pendingList.size - 1) TextPurpleDark else Color.LightGray,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
                     }
 
                     // FOOTER: Tombol Aksi (Deny / Approve)
-                    // Menggunakan Text Button agar mirip referensi gambar
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 32.dp, vertical = 20.dp), // Padding lebih besar
+                            .padding(horizontal = 32.dp, vertical = 20.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Tombol Deny (Teks Merah)
                         Text(
                             text = "Deny",
-                            color = Color(0xFFD32F2F), // Merah
+                            color = PieRed,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
@@ -681,7 +689,7 @@ fun TabContentDetail(
                         // Tombol Approve (Teks Hijau)
                         Text(
                             text = "Approve",
-                            color = Color(0xFF388E3C), // Hijau
+                            color = SuccessGreen, // Hijau
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier
@@ -695,22 +703,21 @@ fun TabContentDetail(
     }
 }
 
-// Helper Composable Baru untuk styling teks mirip gambar referensi
-// (Label kecil ungu transparan, Value besar ungu tebal)
+// Helper Composable
 @Composable
-fun DetailItemFigmaRef(label: String, value: String) {
+fun DetailTambahan(label: String, value: String) {
     Column(modifier = Modifier.padding(bottom = 12.dp)) {
         Text(
             text = label,
             fontSize = 12.sp,
-            color = ColorTextDeep.copy(alpha = 0.6f), // Warna Label Ungu agak pudar
+            color = TextPurpleDark.copy(alpha = 0.6f),
             lineHeight = 14.sp
         )
         Text(
             text = value,
-            fontSize = 16.sp, // Ukuran value lebih besar
-            fontWeight = FontWeight.Bold, // Bold
-            color = ColorTextDeep // Ungu Tua
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextPurpleDark
         )
     }
 }
@@ -731,10 +738,9 @@ fun HistoryItemCard(trx: Transaction, onClick: () -> Unit) {
             // BAGIAN KIRI
             Column {
                 // Baris 1: Bulan (DEC)
-                Text(trx.date.split(" ")[0], fontWeight = FontWeight.Bold, color = ColorTextDeep)
+                Text(trx.date.split(" ")[0], fontWeight = FontWeight.Bold, color = TextPurpleDark)
 
                 // Baris 2: Tanggal & Tahun saja (07/2025)
-                // Menggunakan substringAfter(" ") untuk membuang kata pertama (Bulan)
                 Text(trx.date.substringAfter(" "), fontSize = 12.sp, color = Color.Gray)
 
                 Spacer(Modifier.height(4.dp))
@@ -757,20 +763,20 @@ fun HistoryItemCard(trx: Transaction, onClick: () -> Unit) {
                 }
                 Icon(icon, null, tint = color, modifier = Modifier.size(28.dp))
                 Spacer(Modifier.height(4.dp))
-                Text(trx.description, fontSize = 12.sp, color = ColorTextDeep, maxLines = 1)
+                Text(trx.description, fontSize = 12.sp, color = TextPurpleDark, maxLines = 1)
             }
         }
     }
 }
 
 @Composable
-fun DetailLabelValue(label: String, value: String) { Column(modifier = Modifier.padding(vertical = 4.dp)) { Text(label, fontSize = 12.sp, color = ColorTextDeep.copy(alpha = 0.7f)); Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = ColorTextDeep) } }
+fun DetailLabelValue(label: String, value: String) { Column(modifier = Modifier.padding(vertical = 4.dp)) { Text(label, fontSize = 12.sp, color = TextPurpleDark.copy(alpha = 0.7f)); Text(value, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextPurpleDark) } }
 
 @Composable
 fun CustomBottomNavigation(selectedTab: DetailTab, onTabSelected: (DetailTab) -> Unit) {
     Box(modifier = Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.BottomCenter) {
         // Background Bar Bawah
-        Surface(modifier = Modifier.fillMaxWidth().height(60.dp), color = ColorChartBg) {
+        Surface(modifier = Modifier.fillMaxWidth().height(60.dp), color = Purple300) {
             Row(modifier = Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
 
                 // TOMBOL KIRI (HOME)
@@ -778,7 +784,7 @@ fun CustomBottomNavigation(selectedTab: DetailTab, onTabSelected: (DetailTab) ->
                     Icon(
                         DetailTab.Home.icon,
                         null,
-                        tint = if (selectedTab == DetailTab.Home) ColorTextDeep else FigmaBg2
+                        tint = if (selectedTab == DetailTab.Home) TextPurpleDark else FigmaBg2
                     )
                 }
 
@@ -789,7 +795,7 @@ fun CustomBottomNavigation(selectedTab: DetailTab, onTabSelected: (DetailTab) ->
                     Icon(
                         DetailTab.Perincian.icon,
                         null,
-                        tint = if (selectedTab == DetailTab.Konfirmasi) ColorTextDeep else FigmaBg2
+                        tint = if (selectedTab == DetailTab.Konfirmasi) TextPurpleDark else FigmaBg2
                     )
                 }
             }
@@ -801,7 +807,7 @@ fun CustomBottomNavigation(selectedTab: DetailTab, onTabSelected: (DetailTab) ->
 
         // LOGIKA WARNA BACKGROUND:
         // Kalau Aktif -> Ungu Muda (FigmaBg2)
-        // Kalau Tidak Aktif -> Ungu Tua (ColorTextDeep)
+        // Kalau Tidak Aktif -> Ungu Tua (TextPurpleDark)
         val circleBgColor = if (isConfirmationActive) FigmaBg2 else Color (0xFF894EB1)
 
         // LOGIKA WARNA ICON (Harus kontras dengan background):
@@ -815,15 +821,15 @@ fun CustomBottomNavigation(selectedTab: DetailTab, onTabSelected: (DetailTab) ->
                 .offset(y = 10.dp)
                 .size(70.dp)
                 .clip(CircleShape)
-                .background(circleBgColor) // <--- BACKGROUND BERUBAH DI SINI
+                .background(circleBgColor)
                 .clickable { onTabSelected(DetailTab.Perincian) }
-                .border(4.dp, FigmaBg3, CircleShape),
+                .border(4.dp, Purple100, CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 DetailTab.Konfirmasi.icon,
                 null,
-                tint = iconColor // <--- ICON BERUBAH DI SINI
+                tint = iconColor
             )
         }
     }
