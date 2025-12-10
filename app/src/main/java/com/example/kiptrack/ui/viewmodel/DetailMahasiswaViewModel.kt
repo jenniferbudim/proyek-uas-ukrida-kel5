@@ -31,12 +31,10 @@ data class DetailMahasiswaUiState(
     val saldo: Long = 0L,
     val photoProfile: String = "",
 
-    // Statistik ALL TIME (Sejarah)
     val totalPengeluaranAllTime: Long = 0L,
     val totalPelanggaranAllTime: Long = 0L,
 
-    // Statistik SEMESTER INI (Aktif)
-    val pelanggaranSemesterIni: Long = 0L, // Diambil dari DB (total_penyalahgunaan)
+    val pelanggaranSemesterIni: Long = 0L,
     val estimasiPendapatanDepan: Long = 0L,
 
     val transactionList: List<Transaction> = emptyList(),
@@ -57,7 +55,7 @@ class DetailMahasiswaViewModel(
 
     private val db = FirebaseFirestore.getInstance()
     private var allTransactionsCache: List<Transaction> = emptyList()
-    private var currentClusterNominal: Long = 8000000L // Default sebelum load config
+    private var currentClusterNominal: Long = 8000000L
 
     init {
         fetchFullStudentData()
@@ -78,22 +76,18 @@ class DetailMahasiswaViewModel(
         uiState = uiState.copy(selectedTransaction = trx)
     }
 
-    // --- 1. FETCH DATA MAHASISWA & AUTO UPDATE ---
     private fun fetchFullStudentData() = viewModelScope.launch {
         try {
             val docUser = db.collection("users").document(studentUid).get().await()
             if (!docUser.exists()) return@launch
 
             val dataUser = docUser.data ?: emptyMap()
-
-            // Ambil Data Semester untuk Cek Auto-Update
             val semesterNow = (dataUser["semester_berjalan"] as? Number)?.toInt() ?: 1
             val jenjang = dataUser["jenjang"] as? String ?: "S1"
             val lastUpdate = dataUser["last_update_period"] as? String ?: ""
             val currentSaldo = (dataUser["saldo_saat_ini"] as? Number)?.toLong() ?: 0L
             val currentViolationsDB = (dataUser["total_penyalahgunaan"] as? Number)?.toLong() ?: 0L
 
-            // Ambil Nominal Cluster (PENTING untuk Top-up Saldo)
             val idUniv = dataUser["id_universitas"] as? String ?: ""
             val idProdi = dataUser["id_prodi"] as? String ?: ""
 
@@ -107,72 +101,45 @@ class DetailMahasiswaViewModel(
                 currentClusterNominal = docConfig.getLong("klaster_$clusterVal") ?: 8000000L
             }
 
-            // Hitung Estimasi Depan
             val estimasiDepan = (currentClusterNominal - currentViolationsDB).coerceAtLeast(0L)
 
-            // Update State UI
             uiState = uiState.copy(
                 name = dataUser["nama"] as? String ?: "Mahasiswa",
                 saldo = currentSaldo,
                 photoProfile = dataUser["foto_profil"] as? String ?: "",
-                pelanggaranSemesterIni = currentViolationsDB, // Dari DB (Active Debt)
+                pelanggaranSemesterIni = currentViolationsDB,
                 estimasiPendapatanDepan = estimasiDepan
             )
 
-            // --- JALANKAN LOGIKA AUTO-UPDATE SEMESTER (SAMA SEPERTI DASHBOARD MAHASISWA) ---
-            checkAndPerformSemesterUpdate(
-                currentSem = semesterNow,
-                jenjang = jenjang,
-                lastUpdatePeriod = lastUpdate,
-                nextAllowance = estimasiDepan, // Gunakan estimasi yang baru dihitung
-                currentSaldo = currentSaldo
-            )
+            checkAndPerformSemesterUpdate(semesterNow, jenjang, lastUpdate, estimasiDepan, currentSaldo)
 
         } catch (e: Exception) {
             println("Error fetch student: ${e.message}")
         }
     }
 
-    // --- LOGIKA AUTO UPDATE (DIPANGGIL OTOMATIS) ---
-    private fun checkAndPerformSemesterUpdate(
-        currentSem: Int,
-        jenjang: String,
-        lastUpdatePeriod: String,
-        nextAllowance: Long,
-        currentSaldo: Long
-    ) {
+    private fun checkAndPerformSemesterUpdate(currentSem: Int, jenjang: String, lastUpdatePeriod: String, nextAllowance: Long, currentSaldo: Long) {
         val calendar = Calendar.getInstance()
-        val month = calendar.get(Calendar.MONTH) // 0=Jan, 6=Jul
+        val month = calendar.get(Calendar.MONTH)
         val year = calendar.get(Calendar.YEAR)
-
-        // Tentukan Periode Saat Ini
         val currentPeriodKey = when (month) {
-            Calendar.JANUARY -> "$year-JAN" // Periode Genap
-            Calendar.JULY -> "$year-JUL"    // Periode Ganjil
-            else -> return // Bukan bulan kenaikan semester
+            Calendar.JANUARY -> "$year-JAN"
+            Calendar.JULY -> "$year-JUL"
+            else -> return
         }
-
-        // Cek Batas Semester
         val maxSemester = if (jenjang.contains("D3", true)) 6 else 8
 
-        // SYARAT: Belum update di periode ini & Belum lulus
         if (currentPeriodKey != lastUpdatePeriod && currentSem < maxSemester) {
             val updates = hashMapOf<String, Any>(
                 "semester_berjalan" to (currentSem + 1),
                 "saldo_saat_ini" to (currentSaldo + nextAllowance),
-                "total_penyalahgunaan" to 0, // Reset Pelanggaran
+                "total_penyalahgunaan" to 0,
                 "last_update_period" to currentPeriodKey
             )
-
-            db.collection("users").document(studentUid).update(updates)
-                .addOnSuccessListener {
-                    // Refresh data agar UI Admin langsung berubah
-                    fetchFullStudentData()
-                }
+            db.collection("users").document(studentUid).update(updates).addOnSuccessListener { fetchFullStudentData() }
         }
     }
 
-    // --- 2. FETCH TRANSAKSI ---
     private fun fetchTransactions() = viewModelScope.launch {
         uiState = uiState.copy(isLoading = true)
         try {
@@ -187,49 +154,42 @@ class DetailMahasiswaViewModel(
                 val data = doc.data ?: emptyMap()
                 val amount = (data["nominal"] as? Number)?.toLong() ?: 0L
                 val status = data["status"] as? String ?: "MENUNGGU"
-
-                // 1. Kamu sudah mengambil datanya di sini (BENAR)
                 val categoryName = data["kategori"] as? String ?: "Lainnya"
 
-                if (status == "DISETUJUI") {
-                    val currentTotal = categoryMap[categoryName] ?: 0L
-                    categoryMap[categoryName] = currentTotal + amount
-                }
+                // --- PERBAIKAN LOGIKA PIE CHART ---
+                // Masukkan SEMUA transaksi ke Pie Chart, tidak peduli statusnya
+                val currentTotal = categoryMap[categoryName] ?: 0L
+                categoryMap[categoryName] = currentTotal + amount
+                // ----------------------------------
 
-                // 2. MASALAHNYA DISINI: Variabel categoryName tidak dimasukkan ke constructor Transaction
                 Transaction(
                     id = doc.id,
                     date = data["tanggal"] as? String ?: "",
                     description = data["deskripsi"] as? String ?: "",
                     amount = amount,
                     status = status,
-
-                    // --- PERBAIKAN: Tambahkan baris ini ---
-                    category = categoryName,
-                    // --------------------------------------
-
+                    category = categoryName, // Pastikan kategori juga masuk ke list item
                     quantity = (data["kuantitas"] as? Number)?.toInt() ?: 1,
                     unitPrice = (data["harga_satuan"] as? Number)?.toLong() ?: 0L,
                     proofImage = data["bukti_base64"] as? String ?: ""
                 )
             }
-            // Sorting Terbaru
+
             val dateFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
             val sortedList = list.sortedByDescending { trx ->
                 try { dateFormat.parse(trx.date)?.time ?: 0L } catch (e: Exception) { 0L }
             }
             allTransactionsCache = sortedList
 
-            // STATISTIK ALL TIME (Dihitung dari riwayat)
-            val totalSpent = sortedList.sumOf { it.amount } // Total keluar (semua status)
-            val totalViolationsHistory = sortedList.filter { it.status == "DITOLAK" }.sumOf { it.amount } // Total Ditolak Seumur Hidup
+            val totalSpent = sortedList.sumOf { it.amount }
+            val totalViolationsHistory = sortedList.filter { it.status == "DITOLAK" }.sumOf { it.amount }
 
             val pieData = generatePieDataBasedOnPrice(categoryMap)
 
             uiState = uiState.copy(
                 isLoading = false,
                 totalPengeluaranAllTime = totalSpent,
-                totalPelanggaranAllTime = totalViolationsHistory, // Tampilkan sejarah total di kartu atas
+                totalPelanggaranAllTime = totalViolationsHistory,
                 selectedTransaction = sortedList.firstOrNull(),
                 categoryData = pieData,
                 transactionList = sortedList
@@ -285,31 +245,20 @@ class DetailMahasiswaViewModel(
         uiState = uiState.copy(graphData = monthlyTotals, transactionList = yearTransactions)
     }
 
-    fun approveTransaction(trxId: String) = viewModelScope.launch {
-        updateStatus(trxId, "DISETUJUI")
-    }
+    fun approveTransaction(trxId: String) = viewModelScope.launch { updateStatus(trxId, "DISETUJUI") }
 
     fun denyTransaction(trxId: String, amount: Long) = viewModelScope.launch {
         updateStatus(trxId, "DITOLAK", false)
         try {
-            // Tambah Pelanggaran & Kurangi Saldo (Opsional, tergantung kebijakan)
-            // Sesuai request: Ditolak -> Masuk Pelanggaran
             val userRef = db.collection("users").document(studentUid)
             db.runTransaction { transaction ->
                 val snapshot = transaction.get(userRef)
                 val currentViolations = snapshot.getLong("total_penyalahgunaan") ?: 0L
-
-                // Update Pelanggaran di DB
                 transaction.update(userRef, "total_penyalahgunaan", currentViolations + amount)
             }.await()
-
-            // Refresh Data User (Pelanggaran Semester Ini)
             fetchFullStudentData()
-            // Refresh List
             fetchTransactions()
-        } catch (e: Exception) {
-            fetchTransactions()
-        }
+        } catch (e: Exception) { fetchTransactions() }
     }
 
     private suspend fun updateStatus(trxId: String, status: String, refresh: Boolean = true) {

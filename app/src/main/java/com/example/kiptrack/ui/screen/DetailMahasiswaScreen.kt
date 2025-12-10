@@ -384,7 +384,7 @@ fun TabContentCharts(state: DetailMahasiswaUiState, viewModel: DetailMahasiswaVi
 
                         // List Legend
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            state.categoryData.take(4).forEachIndexed { _, cat ->
+                            state.categoryData.forEachIndexed { _, cat ->
                                 val color = cat.color
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
