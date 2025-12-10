@@ -4,8 +4,8 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,21 +17,25 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -42,6 +46,12 @@ import com.example.kiptrack.ui.theme.Purple50
 import com.example.kiptrack.ui.utils.ImageUtils
 import com.example.kiptrack.ui.viewmodel.ListMahasiswaViewModel
 import com.example.kiptrack.ui.viewmodel.ListMahasiswaViewModelFactory
+
+// Definisi Warna Custom sesuai Screenshot
+val BackgroundColor = Color(0xFFF3EDF7) // Latar belakang ungu sangat muda
+val CardColor = Color(0xFFDECDE9)       // Warna kartu ungu soft
+val TextPurpleDark = Color(0xFF894EB1)  // Warna teks ungu tua
+val DividerColor = Color(0xFFAFA2BA)    // Warna garis pembatas
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,7 +74,6 @@ fun ListMahasiswaProdiScreen(
     var selectedStudentId by remember { mutableStateOf("") }
     var selectedStudentName by remember { mutableStateOf("") }
 
-    // Toast Handler untuk Delete
     LaunchedEffect(uiState.deleteSuccess, uiState.deleteError) {
         uiState.deleteSuccess?.let {
             Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
@@ -78,38 +87,84 @@ fun ListMahasiswaProdiScreen(
     }
 
     Scaffold(
+        // Background keseluruhan
+        containerColor = BackgroundColor,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = uiState.prodiName, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = "Back")
+            // Custom Header seperti screenshot
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(BackgroundColor)
+                    .padding(top = 16.dp, bottom = 0.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp)
+                ) {
+                    // Tombol Back
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.ChevronLeft,
+                            contentDescription = "Back",
+                            tint = TextPurpleDark,
+                            modifier = Modifier.size(32.dp)
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Purple200,
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
+
+                    // Judul Tengah
+                    Text(
+                        text = "Daftar Mahasiswa",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = TextPurpleDark,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+
+                // Subjudul Prodi (Kanan)
+                Text(
+                    text = uiState.prodiName, // Menggunakan data dinamis (Informatika, dll)
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color(0xFFB14EA7).copy(alpha = 0.8f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 24.dp, top = 8.dp, bottom = 4.dp),
+                    textAlign = TextAlign.End
                 )
-            )
+
+                // Garis Pembatas Tebal
+                Divider(
+                    color = TextPurpleDark.copy(alpha = 0.5f),
+                    thickness = 2.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                )
+            }
         },
         floatingActionButton = {
-            FloatingActionButton(
+            // FAB Extended (Tombol Tambah Panjang)
+            ExtendedFloatingActionButton(
                 onClick = { viewModel.openAddDialog() },
-                containerColor = Purple300,
+                containerColor = TextPurpleDark, // Warna ungu tua sesuai tombol "Tambah"
                 contentColor = Color.White,
-                shape = CircleShape
+                shape = RoundedCornerShape(topStart = 30.dp, bottomStart = 30.dp, bottomEnd = 0.dp, topEnd = 30.dp), // Sedikit custom shape
+                modifier = Modifier.padding(bottom = 16.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Tambah Mahasiswa")
+                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "Tambah", fontWeight = FontWeight.Bold)
             }
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White)
                 .padding(paddingValues)
         ) {
             if (uiState.isLoading) {
@@ -119,13 +174,15 @@ fun ListMahasiswaProdiScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp) // Jarak antar kartu
                 ) {
                     items(uiState.mahasiswaList) { mhs ->
                         MahasiswaListItem(
                             name = mhs.nama,
                             nim = mhs.nim,
+                            // Asumsi ada field fotoUrl, jika tidak pakai inisial
+                            fotoUrl = null,
                             onClick = { onNavigateToDetailMahasiswa(uid, mhs.uid) },
                             onDeleteClick = {
                                 selectedStudentId = mhs.uid
@@ -139,18 +196,15 @@ fun ListMahasiswaProdiScreen(
         }
     }
 
-    // --- DIALOG KONFIRMASI HAPUS DENGAN PASSWORD ---
+    // --- DIALOGS (Logika tidak diubah) ---
     if (showDeleteDialog) {
         DeleteStudentDialog(
             studentName = selectedStudentName,
             onDismiss = { showDeleteDialog = false },
-            onConfirm = { password ->
-                viewModel.deleteStudentWithAuth(selectedStudentId, password)
-            }
+            onConfirm = { password -> viewModel.deleteStudentWithAuth(selectedStudentId, password) }
         )
     }
 
-    // --- DIALOG STEP 1: MAHASISWA ---
     if (formState.step == 1) {
         Dialog(onDismissRequest = { viewModel.closeAddDialog() }) {
             AddStudentFormStep1(
@@ -165,9 +219,8 @@ fun ListMahasiswaProdiScreen(
         }
     }
 
-    // --- DIALOG STEP 2: WALI & SUBMIT ---
     if (formState.step == 2) {
-        Dialog(onDismissRequest = { /* Prevent dismiss while loading */ }) {
+        Dialog(onDismissRequest = { }) {
             AddParentFormStep2(
                 isLoading = formState.isLoading,
                 onSubmit = { nama, email, pass, idW ->
@@ -181,7 +234,91 @@ fun ListMahasiswaProdiScreen(
     }
 }
 
-// --- DIALOG HAPUS BARU ---
+// --- MODIFIKASI ITEM LIST AGAR SESUAI GAMBAR ---
+@Composable
+fun MahasiswaListItem(
+    name: String,
+    nim: String,
+    fotoUrl: String? = null,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = CardColor), // Warna ungu khusus
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp), // Shadow agar timbul
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(vertical = 12.dp, horizontal = 16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Avatar Circle
+            Box(
+                modifier = Modifier
+                    .size(55.dp) // Ukuran avatar lebih besar
+                    .clip(CircleShape)
+                    .background(Color.White), // Background putih di balik foto
+                contentAlignment = Alignment.Center
+            ) {
+                // Gunakan inisial jika tidak ada foto (Logika fallback)
+                Text(
+                    text = name.first().toString(),
+                    color = TextPurpleDark,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 24.sp
+                )
+                // Jika kamu punya library Coil/Glide, bisa uncomment ini untuk load image:
+                /*
+                if (fotoUrl != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(fotoUrl),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                */
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Kolom Teks
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = TextPurpleDark // Nama warna ungu tua
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = nim, // Sesuai gambar, NIM sepertinya berwarna putih
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White // Ubah jadi putih
+                )
+            }
+
+            // Tombol Delete (Disimpan karena logika tidak boleh hilang)
+            // Dibuat lebih subtle agar tidak merusak estetika
+            IconButton(onClick = onDeleteClick) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Hapus",
+                    tint = TextPurpleDark.copy(alpha = 0.5f) // Warna transparan agar tidak terlalu mencolok
+                )
+            }
+        }
+    }
+}
+
+// --- KOMPONEN PENDUKUNG LAINNYA (TIDAK BERUBAH SECARA LOGIKA) ---
+
 @Composable
 fun DeleteStudentDialog(
     studentName: String,
@@ -191,24 +328,20 @@ fun DeleteStudentDialog(
     var password by remember { mutableStateOf("") }
 
     AlertDialog(
+        containerColor = Color.White,
         onDismissRequest = onDismiss,
         title = { Text("Hapus Mahasiswa", color = Color.Red, fontWeight = FontWeight.Bold) },
         text = {
             Column {
-                Text("Anda akan menghapus data '$studentName' beserta data Wali-nya secara permanen dari Database.")
+                Text("Hapus data '$studentName' permanen?", color = Color.Black)
                 Spacer(modifier = Modifier.height(12.dp))
-                Text("Masukkan Password Admin:", fontSize = 12.sp, color = Color.Gray, fontWeight = FontWeight.SemiBold)
-                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     visualTransformation = PasswordVisualTransformation(),
+                    placeholder = { Text("Password Admin") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Red,
-                        cursorColor = Color.Red
-                    )
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         },
@@ -217,7 +350,7 @@ fun DeleteStudentDialog(
                 onClick = { onConfirm(password) },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                 enabled = password.isNotBlank()
-            ) { Text("Hapus Permanen") }
+            ) { Text("Hapus", color = Color.White) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Batal", color = Color.Gray) }
@@ -251,7 +384,7 @@ fun AddStudentFormStep1(
 
     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
-            Text("Tambah Mahasiswa (1/2)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Purple300)
+            Text("Tambah Mahasiswa (1/2)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPurpleDark)
             Spacer(Modifier.height(16.dp))
 
             OutlinedTextField(value = nama, onValueChange = { nama = it }, label = { Text("Nama Lengkap") }, modifier = Modifier.fillMaxWidth())
@@ -260,14 +393,14 @@ fun AddStudentFormStep1(
             OutlinedTextField(value = nim, onValueChange = { nim = it }, label = { Text("NIM") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
 
             Spacer(Modifier.height(8.dp))
-            Text("Semester Berjalan:", fontSize = 14.sp, color = Purple300)
+            Text("Semester Berjalan:", fontSize = 14.sp, color = TextPurpleDark)
             SemesterDropdown(maxSem = maxSem, current = semester, onSelected = { semester = it })
 
             Spacer(Modifier.height(16.dp))
-            Button(onClick = { launcher.launch("image/*") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = Purple50)) {
-                Icon(Icons.Default.CloudUpload, null, tint = Purple300)
+            Button(onClick = { launcher.launch("image/*") }, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = CardColor)) {
+                Icon(Icons.Default.CloudUpload, null, tint = TextPurpleDark)
                 Spacer(Modifier.width(8.dp))
-                Text(if(photoBase64.isEmpty()) "Upload Foto Profil" else "Foto Terpilih", color = Purple300)
+                Text(if(photoBase64.isEmpty()) "Upload Foto Profil" else "Foto Terpilih", color = TextPurpleDark)
             }
 
             if (errorMsg != null) {
@@ -277,7 +410,7 @@ fun AddStudentFormStep1(
             Spacer(Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                 TextButton(onClick = onCancel) { Text("Batal", color = Color.Gray) }
-                Button(onClick = { onNext(nama, email, password, nim, semester, photoBase64) }, colors = ButtonDefaults.buttonColors(containerColor = Purple300)) { Text("Lanjut") }
+                Button(onClick = { onNext(nama, email, password, nim, semester, photoBase64) }, colors = ButtonDefaults.buttonColors(containerColor = TextPurpleDark)) { Text("Lanjut", color = Color.White) }
             }
         }
     }
@@ -297,7 +430,7 @@ fun AddParentFormStep2(
 
     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
-            Text("Data Orang Tua/Wali (2/2)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Purple300)
+            Text("Data Orang Tua/Wali (2/2)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPurpleDark)
             Spacer(Modifier.height(16.dp))
 
             OutlinedTextField(value = nama, onValueChange = { nama = it }, label = { Text("Nama Wali") }, modifier = Modifier.fillMaxWidth())
@@ -314,10 +447,10 @@ fun AddParentFormStep2(
                 TextButton(onClick = onBack, enabled = !isLoading) { Text("Kembali", color = Color.Gray) }
                 Button(
                     onClick = { onSubmit(nama, email, password, idWali) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Purple300),
+                    colors = ButtonDefaults.buttonColors(containerColor = TextPurpleDark),
                     enabled = !isLoading
                 ) {
-                    if(isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp)) else Text("Simpan Semua")
+                    if(isLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp)) else Text("Simpan Semua", color = Color.White)
                 }
             }
         }
@@ -339,41 +472,6 @@ fun SemesterDropdown(maxSem: Int, current: String, onSelected: (String) -> Unit)
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { label ->
                 DropdownMenuItem(text = { Text(label) }, onClick = { onSelected(label); expanded = false })
-            }
-        }
-    }
-}
-
-@Composable
-fun MahasiswaListItem(name: String, nim: String, onClick: () -> Unit, onDeleteClick: () -> Unit) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Purple50.copy(alpha = 0.3f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth().clickable { onClick() }
-    ) {
-        Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                Box(
-                    modifier = Modifier.size(48.dp).clip(CircleShape).background(Purple200),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(name.first().toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Purple300)
-                    Text("NIM: $nim", fontSize = 12.sp, color = Purple300.copy(alpha = 0.7f))
-                }
-            }
-
-            // Icon Hapus
-            IconButton(onClick = onDeleteClick) {
-                Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = Color.Red)
             }
         }
     }

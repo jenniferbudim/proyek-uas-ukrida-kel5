@@ -16,12 +16,14 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ExitToApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -98,11 +100,7 @@ fun DashboardAdminScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Purple200, Color(0xFFE1BEE7))
-                    )
-                )
+                .background(color = Purple200)
                 .padding(paddingValues)
         ) {
             Column(
@@ -113,12 +111,18 @@ fun DashboardAdminScreen(
                 Spacer(modifier = Modifier.height(20.dp))
                 Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                     Icon(
-                        imageVector = Icons.Outlined.ExitToApp, contentDescription = "Logout", tint = Purple50,
-                        modifier = Modifier.size(28.dp).align(Alignment.CenterStart).clickable { onLogoutClicked() }
+                        imageVector = Icons.Outlined.ExitToApp,
+                        contentDescription = "Logout",
+                        tint = Purple50,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .scale(scaleX = -1f, scaleY = 1f) // Tambahkan ini untuk flip horizontal
+                            .align(Alignment.CenterStart)
+                            .clickable { onLogoutClicked() }
                     )
                     Text(
                         text = buildAnnotatedString {
-                            withStyle(style = SpanStyle(color = Purple50.copy(alpha = 0.6f))) { append("Hello, ") }
+                            withStyle(style = SpanStyle(color = Color(0xFFF3E5F5))) { append("Hello, ") }
                             withStyle(style = SpanStyle(color = Color(0xFF8E24AA), fontWeight = FontWeight.Bold)) { append(state.username); append("!") }
                         },
                         fontSize = 18.sp,
@@ -177,7 +181,6 @@ fun DashboardAdminScreen(
                                     )
                                 }
                             }
-                            item { Spacer(modifier = Modifier.height(80.dp)) } // Spacer bawah agar tidak tertutup FAB
                         }
                     }
                 }
@@ -396,17 +399,79 @@ fun AdminTabItem(title: String, isSelected: Boolean, onClick: () -> Unit) {
 
 @Composable
 fun UniversityCard(uni: University, onCardClick: () -> Unit, onEditClick: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().clickable { onCardClick() }, shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Purple50.copy(alpha = 0.5f)), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Box(modifier = Modifier.size(50.dp).background(Color.White, CircleShape).border(1.dp, Color.LightGray, CircleShape), contentAlignment = Alignment.Center) { Text("🏛️", fontSize = 24.sp) }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = uni.name, fontWeight = FontWeight.Bold, color = Purple300, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Akreditasi: ${uni.accreditation}", color = Purple300, fontSize = 14.sp)
-                Text(text = "Cluster: ${uni.cluster}", color = Purple300, fontSize = 14.sp)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 4.dp) // Sedikit margin bawah agar shadow tidak terpotong
+            .clickable { onCardClick() },
+        shape = RoundedCornerShape(16.dp), // Sudut lebih bulat (modern style)
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFF3E5F5) // Background Ungu Muda (Purple Tone)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp // Drop Shadow yang lebih tebal/jelas
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Icon Box
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .background(Color.White, CircleShape) // Background icon putih
+                    .border(1.dp, Color(0xFFE1BEE7), CircleShape), // Border ungu tipis
+                contentAlignment = Alignment.Center
+            ) {
+                Text("🏛️", fontSize = 24.sp)
             }
-            IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Purple300) }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Text Content
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = uni.name,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF4A148C), // Ungu Tua (agar kontras di background ungu muda)
+                    fontSize = 16.sp
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Akreditasi: ${uni.accreditation}",
+                    color = Color(0xFF7B1FA2), // Ungu Medium
+                    fontSize = 14.sp
+                )
+                Text(
+                    text = "Cluster: ${uni.cluster}",
+                    color = Color(0xFF7B1FA2), // Ungu Medium
+                    fontSize = 14.sp
+                )
+            }
+
+            // Edit Button
+            IconButton(
+                onClick = onEditClick,
+                modifier = Modifier
+                    .shadow(
+                        elevation = 4.dp,                 // Ketebalan shadow
+                        shape = CircleShape,              // Bentuk shadow mengikuti lingkaran
+                        spotColor = Color.Gray            // Warna bayangan
+                    )
+                    .background(Color.White, CircleShape) // Background putih wajib ada agar shadow terlihat
+                    .size(40.dp)                          // Ukuran tombol
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = "Edit",
+                    tint = Color(0xFF8E24AA), // Warna Icon Ungu
+                    modifier = Modifier.size(20.dp) // Ukuran icon disesuaikan agar proporsional
+                )
+            }
         }
     }
 }
@@ -414,14 +479,72 @@ fun UniversityCard(uni: University, onCardClick: () -> Unit, onEditClick: () -> 
 @Composable
 fun ClusterCard(cluster: Cluster, onEditClick: () -> Unit) {
     val formatter = remember { NumberFormat.getCurrencyInstance(Locale("in", "ID")) }
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Purple50.copy(alpha = 0.5f)), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = cluster.name, fontWeight = FontWeight.Bold, color = Purple300, fontSize = 16.sp)
+
+    // Row Utama pembungkus (Parent)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 1. KOTAK KONTEN (Card)
+        Card(
+            modifier = Modifier
+                .weight(1f)
+                // --- BAGIAN INI YANG DIUBAH ---
+                // Menambahkan padding kanan agar kotak ungu 'mengecil' lebarnya
+                // Semakin besar angkanya, semakin kecil kotaknya.
+                .padding(end = 16.dp)
+                // -----------------------------
+                .heightIn(min = 80.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color(0xFFF3E5F5)
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 4.dp
+            )
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally // Text Rata Tengah Horizontal
+            ) {
+                Text(
+                    text = cluster.name,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF6A1B9A),
+                    fontSize = 15.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center // Text Alignment
+                )
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Bantuan: ${formatter.format(cluster.nominal)}", color = Purple300, fontSize = 14.sp)
+                Text(
+                    text = "Nominal: ${formatter.format(cluster.nominal)}",
+                    color = Color(0xFFAB47BC).copy(alpha = 0.8f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center // Text Alignment
+                )
             }
-            IconButton(onClick = onEditClick) { Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Purple300) }
+        }
+
+        // Hapus Spacer sebelumnya atau kecilkan jika padding di atas sudah cukup
+        // Saya biarkan Spacer kecil sebagai pemisah minimal
+        Spacer(modifier = Modifier.width(4.dp))
+
+        // 2. TOMBOL EDIT
+        IconButton(
+            onClick = onEditClick,
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Edit,
+                contentDescription = "Edit",
+                tint = Color(0xFF7B1FA2),
+                modifier = Modifier.size(28.dp)
+            )
         }
     }
 }

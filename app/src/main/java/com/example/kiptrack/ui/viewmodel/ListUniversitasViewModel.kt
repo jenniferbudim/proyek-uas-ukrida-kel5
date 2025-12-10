@@ -12,13 +12,18 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-// Kita ubah struktur data agar lebih mudah dikelola
-data class ProdiItem(val id: String, val nama: String, val jenjang: String)
+// --- PERUBAHAN 1: Tambahkan 'kategori' di Data Class ---
+data class ProdiItem(
+    val id: String,
+    val nama: String,
+    val jenjang: String,
+    val kategori: String // Tambahan wajib agar UI bisa baca
+)
 
 data class ListUniversitasUiState(
     val isLoading: Boolean = true,
     val universityName: String = "Loading...",
-    val prodiItems: List<ProdiItem> = emptyList(), // Menggunakan Object Item
+    val prodiItems: List<ProdiItem> = emptyList(),
     val error: String? = null,
     val actionSuccess: String? = null
 )
@@ -44,7 +49,7 @@ class ListUniversitasViewModel(private val universityId: String) : ViewModel() {
                 uiState = uiState.copy(universityName = name)
             }
 
-        // 2. Ambil List Prodi Realtime (Agar auto-update saat ditambah/hapus)
+        // 2. Ambil List Prodi Realtime
         db.collection("universitas").document(universityId).collection("prodi")
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
@@ -53,10 +58,12 @@ class ListUniversitasViewModel(private val universityId: String) : ViewModel() {
                 }
 
                 val list = snapshot?.documents?.map { doc ->
+                    // --- PERUBAHAN 2: Ambil field 'kategori' dari Firestore ---
                     ProdiItem(
                         id = doc.id,
                         nama = doc.getString("nama") ?: "",
-                        jenjang = doc.getString("jenjang") ?: "S1"
+                        jenjang = doc.getString("jenjang") ?: "S1",
+                        kategori = doc.getString("kategori") ?: "non-kedokteran" // Default value jika kosong
                     )
                 } ?: emptyList()
 
@@ -75,7 +82,7 @@ class ListUniversitasViewModel(private val universityId: String) : ViewModel() {
         val data = hashMapOf(
             "nama" to namaProdi,
             "jenjang" to jenjang,
-            "kategori" to kategori
+            "kategori" to kategori // Ini sudah benar, menyimpan ke db
         )
 
         db.collection("universitas").document(universityId)
@@ -86,6 +93,7 @@ class ListUniversitasViewModel(private val universityId: String) : ViewModel() {
     }
 
     // UPDATE PRODI
+    // (Opsional: Tambahkan kategori di sini jika ingin kategori bisa diedit juga)
     fun updateProdi(prodiId: String, newName: String, newJenjang: String) = viewModelScope.launch {
         try {
             db.collection("universitas").document(universityId)
