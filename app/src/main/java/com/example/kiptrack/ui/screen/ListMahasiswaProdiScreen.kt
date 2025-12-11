@@ -4,7 +4,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,22 +15,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ChevronLeft
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -40,18 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.kiptrack.ui.theme.Purple200
 import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.theme.Purple50
 import com.example.kiptrack.ui.utils.ImageUtils
 import com.example.kiptrack.ui.viewmodel.ListMahasiswaViewModel
 import com.example.kiptrack.ui.viewmodel.ListMahasiswaViewModelFactory
-
-// Definisi Warna Custom sesuai Screenshot
-val BackgroundColor = Color(0xFFF3EDF7) // Latar belakang ungu sangat muda
-val CardColor = Color(0xFFDECDE9)       // Warna kartu ungu soft
-val TextPurpleDark = Color(0xFF894EB1)  // Warna teks ungu tua
-val DividerColor = Color(0xFFAFA2BA)    // Warna garis pembatas
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,13 +75,13 @@ fun ListMahasiswaProdiScreen(
 
     Scaffold(
         // Background keseluruhan
-        containerColor = BackgroundColor,
+        containerColor = Purple50,
         topBar = {
             // Custom Header seperti screenshot
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(BackgroundColor)
+                    .background(Purple50)
                     .padding(top = 16.dp, bottom = 0.dp)
             ) {
                 Box(
@@ -476,3 +463,6 @@ fun SemesterDropdown(maxSem: Int, current: String, onSelected: (String) -> Unit)
         }
     }
 }
+
+val CardColor = Color(0xFFDECDE9)
+val TextPurpleDark = Color(0xFF894EB1)

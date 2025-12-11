@@ -29,8 +29,8 @@ import java.util.Locale
 data class DashboardWaliUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
-    val username: String = "Wali", // Nama Wali
-    val studentName: String = "Mahasiswa", // Nama Anak
+    val username: String = "Wali",
+    val studentName: String = "Mahasiswa",
 
     val currentBalance: Long = 0L,
     val totalExpenditure: Long = 0L,
@@ -41,7 +41,6 @@ data class DashboardWaliUiState(
 
     val selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR),
 
-    // Cache data transaksi agar tidak fetch ulang saat ganti tahun
     val allTransactions: List<Transaction> = emptyList()
 )
 
@@ -72,7 +71,6 @@ class DashboardWaliViewModel(private val waliUid: String) : ViewModel() {
     private fun fetchData() = viewModelScope.launch {
         uiState = uiState.copy(isLoading = true)
         try {
-            // 1. Ambil Data WALI untuk mendapatkan ID Mahasiswa
             val waliDoc = db.collection("users").document(waliUid).get().await()
             if (!waliDoc.exists()) {
                 uiState = uiState.copy(isLoading = false, errorMessage = "Data Wali tidak ditemukan")
@@ -87,12 +85,10 @@ class DashboardWaliViewModel(private val waliUid: String) : ViewModel() {
                 return@launch
             }
 
-            // 2. Ambil Data MAHASISWA (Saldo & Nama)
             val studentDoc = db.collection("users").document(studentUid).get().await()
             val studentName = studentDoc.getString("nama") ?: "Mahasiswa"
             val currentBalance = studentDoc.getLong("saldo_saat_ini") ?: 0L
 
-            // 3. Ambil TRANSAKSI Mahasiswa
             val trxSnapshot = db.collection("users").document(studentUid)
                 .collection("laporan_keuangan")
                 .get()
@@ -104,7 +100,6 @@ class DashboardWaliViewModel(private val waliUid: String) : ViewModel() {
                 val amount = (data["nominal"] as? Number)?.toLong() ?: 0L
                 val category = data["kategori"] as? String ?: "Lainnya"
 
-                // Hitung Kategori (SEMUA STATUS: Pending, Disetujui, Ditolak - Sesuai Request)
                 val currentCatTotal = categoryMap[category] ?: 0L
                 categoryMap[category] = currentCatTotal + amount
 
@@ -118,14 +113,11 @@ class DashboardWaliViewModel(private val waliUid: String) : ViewModel() {
                 )
             }
 
-            // 4. Hitung Statistik Global
             val totalSpent = transactionList.sumOf { it.amount } // Semua status
             val totalViolations = transactionList.filter { it.status == "DITOLAK" }.sumOf { it.amount } // Hanya yang ditolak
 
-            // 5. Generate Pie Chart Data
             val pieData = generatePieData(categoryMap)
 
-            // 6. Update State Awal
             uiState = uiState.copy(
                 isLoading = false,
                 username = namaWali,
@@ -137,7 +129,6 @@ class DashboardWaliViewModel(private val waliUid: String) : ViewModel() {
                 allTransactions = transactionList
             )
 
-            // 7. Proses Grafik untuk Tahun Sekarang
             processGraphData(transactionList, uiState.selectedYear)
 
         } catch (e: Exception) {

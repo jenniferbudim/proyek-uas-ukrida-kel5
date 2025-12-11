@@ -14,13 +14,11 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// State Updated
 data class LogFormUiState(
     val isLoading: Boolean = false,
     val isSuccess: Boolean = false,
     val errorMessage: String? = null,
 
-    // Tanggal Input (Format: MMM dd/yyyy) -> DEC 10/2025
     val dateInput: String = SimpleDateFormat("MMM dd/yyyy", Locale.US).format(Date()).uppercase(),
     val description: String = "",
     val quantity: String = "",
@@ -38,11 +36,7 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
 
     private val db = FirebaseFirestore.getInstance()
 
-    // --- FIX FORMAT TANGGAL ---
     fun onDateChange(value: String) {
-        // Value yang diterima dari UI (DatePicker) biasanya "dd / MM / yyyy"
-        // Kita harus mengubahnya menjadi format standar "MMM dd/yyyy" (DEC 10/2025)
-        // Agar konsisten saat ditampilkan di list riwayat
 
         try {
             val inputFormat = SimpleDateFormat("dd / MM / yyyy", Locale.US)
@@ -53,7 +47,6 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
                 val formatted = outputFormat.format(date).uppercase()
                 uiState = uiState.copy(dateInput = formatted)
             } else {
-                // Jika gagal parse, gunakan value mentah (fallback)
                 uiState = uiState.copy(dateInput = value)
             }
         } catch (e: Exception) {
@@ -106,7 +99,7 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
             val price = uiState.unitPrice.toLongOrNull() ?: 0L
 
             val reportData = hashMapOf(
-                "tanggal" to uiState.dateInput, // Format sudah "DEC 10/2025"
+                "tanggal" to uiState.dateInput,
                 "deskripsi" to uiState.description,
                 "kategori" to uiState.category,
                 "kuantitas" to qty,
@@ -117,10 +110,9 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
                 "created_at" to System.currentTimeMillis()
             )
 
-            // --- TRANSACTION: SIMPAN LAPORAN + POTONG SALDO ---
             db.runTransaction { transaction ->
                 val userRef = db.collection("users").document(uid)
-                val reportRef = userRef.collection("laporan_keuangan").document() // Auto ID
+                val reportRef = userRef.collection("laporan_keuangan").document()
 
                 val snapshot = transaction.get(userRef)
                 val currentSaldo = snapshot.getLong("saldo_saat_ini") ?: 0L

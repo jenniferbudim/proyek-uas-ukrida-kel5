@@ -52,7 +52,6 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
     val state = viewModel.uiState
     val context = LocalContext.current
 
-    // --- LOGIC: CROP IMAGE ---
     val imageCropLauncher = rememberLauncherForActivityResult(CropImageContract()) { result ->
         if (result.isSuccessful) {
             val uriContent = result.uriContent
@@ -140,12 +139,11 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                // Bottom padding 40dp ensures the hanging button doesn't touch the screen edge
                 .padding(top = 90.dp, bottom = 40.dp, start = 20.dp, end = 20.dp),
             contentAlignment = Alignment.TopCenter
         ) {
 
-            // --- MAIN CARD (Behind Button) ---
+            // --- MAIN CARD  ---
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.BottomCenter
@@ -166,7 +164,7 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                         Column(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(top = 60.dp, start = 20.dp, end = 20.dp), // No bottom padding here, handled by spacer
+                                .padding(top = 60.dp, start = 20.dp, end = 20.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             // Name
@@ -206,21 +204,21 @@ fun ProfileMahasiswaScreen(uid: String, onBackClicked: () -> Unit, onLogoutClick
                     }
                 }
 
-                // --- FLOATING BUTTON (Overlapping Card Bottom) ---
+                // --- FLOATING BUTTON ---
                 Button(
                     onClick = onLogoutClicked,
-                    colors = ButtonDefaults.buttonColors(containerColor = Purple200), // Lavender color
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple200),
                     shape = RoundedCornerShape(15.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
                     modifier = Modifier
-                        .align(Alignment.BottomCenter) // Aligns to bottom of Box
+                        .align(Alignment.BottomCenter)
                         .height(50.dp)
-                        .width(150.dp) // Fixed width for pill look
+                        .width(150.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Logout,
                         contentDescription = "Logout",
-                        tint = PurpleTextDeep, // Dark Purple Icon
+                        tint = PurpleTextDeep,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(Modifier.width(8.dp))
@@ -301,7 +299,7 @@ fun ProfileDetailFieldRefStyle(label: String, value: String) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp)) // Slightly off-white/grey for field bg
+                .background(Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
                 .padding(vertical = 12.dp, horizontal = 16.dp)
         ) {
             Text(

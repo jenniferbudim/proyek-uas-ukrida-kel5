@@ -199,7 +199,7 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                     }
                     Spacer(Modifier.height(16.dp))
 
-                    // 2. Kategori (UPDATED TO MATCH IMAGE EXACTLY)
+                    // 2. Kategori
                     FormLabelRef("Kategori Pengeluaran :")
 
                     // Container for the whole dropdown block
@@ -207,9 +207,9 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Purple100) // Solid Light Purple Background
+                            .background(Purple100)
                     ) {
-                        // Header (Always Visible)
+                        // Header
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -231,7 +231,7 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                             )
                         }
 
-                        // Expanded List (Accordion style - pushes content down)
+                        // Expanded List
                         if (isExpanded) {
                             Divider(color = PurpleDark.copy(alpha = 0.1f), thickness = 1.dp)
 
@@ -250,7 +250,6 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(horizontal = 12.dp, vertical = 8.dp)
-                                            // Conditional Border for Selected Item (The "Hunian" look)
                                             .border(
                                                 width = if (isSelected) 1.dp else 0.dp,
                                                 color = if (isSelected) PurpleDark else Color.Transparent,
@@ -267,7 +266,7 @@ fun LogFormScreen(uid: String, onBackClicked: () -> Unit) {
                                         )
                                     }
 
-                                    // Separator line (except for last item)
+                                    // Separator line
                                     if (index < ExpenseCategories.categories.lastIndex) {
                                         Divider(
                                             color = PurpleDark.copy(alpha = 0.1f),

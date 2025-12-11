@@ -52,7 +52,6 @@ class RiwayatWaliViewModel(private val waliUid: String) : ViewModel() {
             val list = snapshot.documents.map { doc ->
                 val d = doc.data ?: emptyMap()
 
-                // --- PERBAIKAN DI SINI: MAPPING FIELD BUKTI ---
                 val img = d["bukti_base64"] as? String ?: ""
 
                 Transaction(

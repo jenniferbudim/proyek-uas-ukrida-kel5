@@ -5,5 +5,5 @@ data class University(
     val name: String,
     val accreditation: String,
     val cluster: String,
-    val logoUrl: String = "" // Placeholder for image URL
+    val logoUrl: String = ""
 )

@@ -7,7 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.kiptrack.ui.model.UserRole
+import com.example.kiptrack.ui.data.UserRole
 import com.example.kiptrack.ui.screen.*
 
 @Composable
@@ -25,7 +25,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                     UserRole.ADMIN -> "dashboard_admin/$uid"
                 }
                 navController.navigate(route) {
-                    // This removes the Login screen from backstack when entering dashboard
                     popUpTo("login") { inclusive = true }
                 }
             })
@@ -58,7 +57,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 onBackClicked = { navController.popBackStack() },
                 onLogoutClicked = {
                     navController.navigate("login") {
-                        // FIX: popUpTo(navController.graph.id) clears the WHOLE stack
                         popUpTo(navController.graph.id) { inclusive = true }
                     }
                 }
@@ -89,7 +87,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 },
                 onLogoutClicked = {
                     navController.navigate("login") {
-                        // FIX: popUpTo(navController.graph.id) clears the WHOLE stack
                         popUpTo(navController.graph.id) { inclusive = true }
                     }
                 }
@@ -125,7 +122,6 @@ fun AppNavigation(modifier: Modifier = Modifier) {
                 },
                 onLogoutClicked = {
                     navController.navigate("login") {
-                        // FIX: popUpTo(navController.graph.id) clears the WHOLE stack
                         popUpTo(navController.graph.id) { inclusive = true }
                     }
                 }

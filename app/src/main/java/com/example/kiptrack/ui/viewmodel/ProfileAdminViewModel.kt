@@ -33,7 +33,7 @@ data class ProfileAdminUiState(
     val photoProfile: String = "",
 
     val maxSemester: Int = 8,
-    val currentDbSemester: Int = 0, // Semester asli di DB
+    val currentDbSemester: Int = 0,
 
     val universityOptions: List<DropdownItem> = emptyList(),
     val prodiOptions: List<DropdownItem> = emptyList()

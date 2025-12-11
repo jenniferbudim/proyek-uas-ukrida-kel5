@@ -18,7 +18,7 @@ object ImageUtils {
             val scaledBitmap = scaleBitmap(bitmap, 800)
 
             val outputStream = ByteArrayOutputStream()
-            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream) // Kompresi 70%
+            scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
             val bytes = outputStream.toByteArray()
             Base64.encodeToString(bytes, Base64.DEFAULT)
         } catch (e: Exception) {
@@ -27,7 +27,7 @@ object ImageUtils {
         }
     }
 
-    // Ubah String Base64 menjadi Bitmap (untuk ditampilkan di UI)
+    // Ubah String Base64 menjadi Bitmap
     fun base64ToBitmap(base64Str: String): Bitmap? {
         return try {
             val decodedBytes = Base64.decode(base64Str, Base64.DEFAULT)

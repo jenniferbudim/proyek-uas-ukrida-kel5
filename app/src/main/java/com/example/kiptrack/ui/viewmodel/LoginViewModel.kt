@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.kiptrack.ui.event.LoginEvent
-import com.example.kiptrack.ui.model.UserRole
+import com.example.kiptrack.ui.data.UserRole
 import com.example.kiptrack.ui.state.LoginUiState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -50,8 +50,7 @@ class LoginViewModel : ViewModel() {
             }
 
             is LoginEvent.OnLoginSuccess -> { 
-                // This event is handled by the UI, not the ViewModel
-            } 
+            }
         }
     }
 

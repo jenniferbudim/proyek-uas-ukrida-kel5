@@ -43,6 +43,9 @@ import com.example.kiptrack.ui.data.University
 import com.example.kiptrack.ui.theme.Purple300
 import com.example.kiptrack.ui.theme.Purple50
 import com.example.kiptrack.ui.theme.Purple200
+import com.example.kiptrack.ui.theme.PurpleDark
+import com.example.kiptrack.ui.theme.PurplePrimary
+import com.example.kiptrack.ui.theme.PurpleTextDeep
 import com.example.kiptrack.ui.viewmodel.DashboardAdminViewModel
 import com.example.kiptrack.ui.viewmodel.DashboardAdminViewModelFactory
 import java.text.NumberFormat
@@ -83,7 +86,6 @@ fun DashboardAdminScreen(
 
     Scaffold(
         floatingActionButton = {
-            // Hanya tampilkan tombol tambah jika tab UNIVERSITAS aktif
             if (state.selectedTab == 0) {
                 FloatingActionButton(
                     onClick = { showAddUniDialog = true },
@@ -116,7 +118,7 @@ fun DashboardAdminScreen(
                         tint = Purple50,
                         modifier = Modifier
                             .size(28.dp)
-                            .scale(scaleX = -1f, scaleY = 1f) // Tambahkan ini untuk flip horizontal
+                            .scale(scaleX = -1f, scaleY = 1f)
                             .align(Alignment.CenterStart)
                             .clickable { onLogoutClicked() }
                     )
@@ -374,9 +376,6 @@ fun EditClusterDialog(cluster: Cluster, onDismiss: () -> Unit, onSave: (Long) ->
     )
 }
 
-// ... (Komponen UI lainnya: AdminSearchBar, AdminTabItem, UniversityCard, ClusterCard TETAP SAMA) ...
-// Pastikan kode di bawah ini tetap ada:
-
 @Composable
 fun AdminSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     TextField(
@@ -402,14 +401,14 @@ fun UniversityCard(uni: University, onCardClick: () -> Unit, onEditClick: () -> 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 4.dp) // Sedikit margin bawah agar shadow tidak terpotong
+            .padding(bottom = 4.dp)
             .clickable { onCardClick() },
-        shape = RoundedCornerShape(16.dp), // Sudut lebih bulat (modern style)
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFF3E5F5) // Background Ungu Muda (Purple Tone)
+            containerColor = Color(0xFFF3E5F5)
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp // Drop Shadow yang lebih tebal/jelas
+            defaultElevation = 8.dp
         )
     ) {
         Row(
@@ -423,8 +422,8 @@ fun UniversityCard(uni: University, onCardClick: () -> Unit, onEditClick: () -> 
             Box(
                 modifier = Modifier
                     .size(50.dp)
-                    .background(Color.White, CircleShape) // Background icon putih
-                    .border(1.dp, Color(0xFFE1BEE7), CircleShape), // Border ungu tipis
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, Color(0xFFE1BEE7), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text("🏛️", fontSize = 24.sp)
@@ -437,18 +436,18 @@ fun UniversityCard(uni: University, onCardClick: () -> Unit, onEditClick: () -> 
                 Text(
                     text = uni.name,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF4A148C), // Ungu Tua (agar kontras di background ungu muda)
+                    color = PurpleTextDeep,
                     fontSize = 16.sp
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Akreditasi: ${uni.accreditation}",
-                    color = Color(0xFF7B1FA2), // Ungu Medium
+                    color = PurpleDark,
                     fontSize = 14.sp
                 )
                 Text(
                     text = "Cluster: ${uni.cluster}",
-                    color = Color(0xFF7B1FA2), // Ungu Medium
+                    color = PurpleDark,
                     fontSize = 14.sp
                 )
             }
@@ -458,18 +457,18 @@ fun UniversityCard(uni: University, onCardClick: () -> Unit, onEditClick: () -> 
                 onClick = onEditClick,
                 modifier = Modifier
                     .shadow(
-                        elevation = 4.dp,                 // Ketebalan shadow
-                        shape = CircleShape,              // Bentuk shadow mengikuti lingkaran
-                        spotColor = Color.Gray            // Warna bayangan
+                        elevation = 4.dp,
+                        shape = CircleShape,
+                        spotColor = Color.Gray
                     )
-                    .background(Color.White, CircleShape) // Background putih wajib ada agar shadow terlihat
-                    .size(40.dp)                          // Ukuran tombol
+                    .background(Color.White, CircleShape)
+                    .size(40.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Edit",
-                    tint = Color(0xFF8E24AA), // Warna Icon Ungu
-                    modifier = Modifier.size(20.dp) // Ukuran icon disesuaikan agar proporsional
+                    tint = PurpleDark,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -491,15 +490,11 @@ fun ClusterCard(cluster: Cluster, onEditClick: () -> Unit) {
         Card(
             modifier = Modifier
                 .weight(1f)
-                // --- BAGIAN INI YANG DIUBAH ---
-                // Menambahkan padding kanan agar kotak ungu 'mengecil' lebarnya
-                // Semakin besar angkanya, semakin kecil kotaknya.
                 .padding(end = 16.dp)
-                // -----------------------------
                 .heightIn(min = 80.dp),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFFF3E5F5)
+                containerColor = Purple50
             ),
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 4.dp
@@ -510,28 +505,26 @@ fun ClusterCard(cluster: Cluster, onEditClick: () -> Unit) {
                     .fillMaxSize()
                     .padding(16.dp),
                 verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally // Text Rata Tengah Horizontal
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = cluster.name,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF6A1B9A),
+                    color = PurpleDark,
                     fontSize = 15.sp,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center // Text Alignment
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "Nominal: ${formatter.format(cluster.nominal)}",
-                    color = Color(0xFFAB47BC).copy(alpha = 0.8f),
+                    color = PurplePrimary.copy(alpha = 0.8f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center // Text Alignment
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
             }
         }
 
-        // Hapus Spacer sebelumnya atau kecilkan jika padding di atas sudah cukup
-        // Saya biarkan Spacer kecil sebagai pemisah minimal
         Spacer(modifier = Modifier.width(4.dp))
 
         // 2. TOMBOL EDIT
@@ -542,7 +535,7 @@ fun ClusterCard(cluster: Cluster, onEditClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Outlined.Edit,
                 contentDescription = "Edit",
-                tint = Color(0xFF7B1FA2),
+                tint = PurpleDark,
                 modifier = Modifier.size(28.dp)
             )
         }

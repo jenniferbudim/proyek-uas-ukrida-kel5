@@ -156,11 +156,8 @@ class DetailMahasiswaViewModel(
                 val status = data["status"] as? String ?: "MENUNGGU"
                 val categoryName = data["kategori"] as? String ?: "Lainnya"
 
-                // --- PERBAIKAN LOGIKA PIE CHART ---
-                // Masukkan SEMUA transaksi ke Pie Chart, tidak peduli statusnya
                 val currentTotal = categoryMap[categoryName] ?: 0L
                 categoryMap[categoryName] = currentTotal + amount
-                // ----------------------------------
 
                 Transaction(
                     id = doc.id,
@@ -168,7 +165,7 @@ class DetailMahasiswaViewModel(
                     description = data["deskripsi"] as? String ?: "",
                     amount = amount,
                     status = status,
-                    category = categoryName, // Pastikan kategori juga masuk ke list item
+                    category = categoryName,
                     quantity = (data["kuantitas"] as? Number)?.toInt() ?: 1,
                     unitPrice = (data["harga_satuan"] as? Number)?.toLong() ?: 0L,
                     proofImage = data["bukti_base64"] as? String ?: ""

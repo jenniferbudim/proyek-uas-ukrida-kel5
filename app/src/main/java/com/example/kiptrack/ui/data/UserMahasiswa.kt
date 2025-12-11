@@ -5,7 +5,6 @@ data class UserMahasiswa(
     val nim: String = "",
     val nama: String = "",
 
-    // Field Data Dinamis
     val universityName: String = "Memuat...",
     val programStudiName: String = "Memuat...",
 
@@ -13,10 +12,6 @@ data class UserMahasiswa(
     val semesterBerjalan: String = "1",
     val namaWali: String = "",
 
-    // Foto Profil
     val fotoProfil: String = "",
-
-    // --- FIELD BARU UNTUK SISTEM SEMESTER ---
-    // Format contoh: "2025-JAN" atau "2025-JUL"
     val lastUpdatePeriod: String = ""
 )

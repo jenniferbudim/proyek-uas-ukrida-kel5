@@ -102,7 +102,6 @@ class DashboardMahasiswaViewModel(private val uid: String) : ViewModel() {
                             description = d["deskripsi"] as? String ?: "",
                             status = d["status"] as? String ?: "MENUNGGU",
 
-                            // --- TAMBAHAN PENTING UNTUK DETAIL ---
                             category = d["kategori"] as? String ?: "Lainnya",
                             proofImage = d["bukti_base64"] as? String ?: "",
                             unitPrice = (d["harga_satuan"] as? Number)?.toLong() ?: 0L,

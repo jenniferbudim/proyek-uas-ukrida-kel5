@@ -11,10 +11,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTime // Import for Pending
-import androidx.compose.material.icons.filled.Cancel     // Import for Rejected
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.ChevronLeft
-import androidx.compose.material.icons.outlined.CheckCircle // Import for Approved
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,7 +66,7 @@ fun PerincianPengeluaranWaliScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 80.dp), // Space for bottom bar
+                    .padding(bottom = 80.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // --- HEADER AREA (Saldo & Statistik) ---
@@ -203,7 +203,7 @@ fun PerincianPengeluaranWaliScreen(
                         val (icon, color) = when (trx.status) {
                             "DISETUJUI" -> Pair(Icons.Outlined.CheckCircle, SuccessGreen)
                             "DITOLAK" -> Pair(Icons.Filled.Cancel, PieRed)
-                            else -> Pair(Icons.Filled.AccessTime, Warning) // MENUNGGU
+                            else -> Pair(Icons.Filled.AccessTime, Warning)
                         }
 
                         HistoryItemCard(
@@ -211,8 +211,8 @@ fun PerincianPengeluaranWaliScreen(
                             dateYear = year,
                             amount = "Rp${formatter.format(trx.amount)}",
                             category = trx.category,
-                            icon = icon, // Pass icon directly
-                            iconColor = color, // Pass color directly
+                            icon = icon,
+                            iconColor = color,
                             onClick = {
                                 selectedTransaction = trx
                                 showDetailDialog = true
@@ -252,7 +252,7 @@ fun PerincianPengeluaranWaliScreen(
         }
     }
 
-    // --- POP-UP DETAIL TRANSAKSI (Unchanged) ---
+    // --- POP-UP DETAIL TRANSAKSI ---
     if (showDetailDialog && selectedTransaction != null) {
         val trx = selectedTransaction!!
         AlertDialog(
@@ -304,14 +304,14 @@ fun WaliDetailRow(label: String, value: String) {
     }
 }
 
-// --- UPDATED CARD COMPONENT ---
+// --- CARD COMPONENT ---
 @Composable
 fun HistoryItemCard(
     month: String,
     dateYear: String,
     amount: String,
     category: String,
-    icon: ImageVector, // CHANGED: Now accepts the specific vector
+    icon: ImageVector,
     iconColor: Color,
     onClick: () -> Unit
 ) {
@@ -370,7 +370,7 @@ fun HistoryItemCard(
             ) {
                 // Icon (Top Right)
                 Icon(
-                    imageVector = icon, // Uses the passed icon
+                    imageVector = icon,
                     contentDescription = null,
                     tint = iconColor,
                     modifier = Modifier.size(28.dp)

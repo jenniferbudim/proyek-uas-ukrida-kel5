@@ -262,7 +262,6 @@ fun DetailItemLabel(label: String, value: String) {
     }
 }
 
-// ... (HeaderSection, SaldoChartSection, LineChart SAMA SEPERTI SEBELUMNYA) ...
 @Composable
 fun HeaderSection(
     userName: String,
@@ -378,12 +377,12 @@ fun LineChart(data: List<Long>, modifier: Modifier = Modifier) {
     }
 }
 
-// TransactionHistorySection with Click
+// TransactionHistorySection
 @Composable
 fun TransactionHistorySection(
     transactions: List<Transaction>,
     onSeeAllClick: () -> Unit,
-    onItemClick: (Transaction) -> Unit // Added Callback
+    onItemClick: (Transaction) -> Unit
 ) {
     Card(
         shape = RoundedCornerShape(20.dp),
@@ -398,7 +397,7 @@ fun TransactionHistorySection(
                     Text(text = "Belum ada transaksi", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.align(Alignment.CenterHorizontally).padding(20.dp))
                 } else {
                     transactions.take(3).forEach { transaction ->
-                        TransactionItem(transaction, onClick = { onItemClick(transaction) }) // Pass Click
+                        TransactionItem(transaction, onClick = { onItemClick(transaction) })
                     }
                 }
             }
@@ -411,11 +410,11 @@ fun TransactionHistorySection(
     }
 }
 
-// TransactionItem with Click
+// TransactionItem
 @Composable
 fun TransactionItem(
     transaction: Transaction,
-    onClick: (() -> Unit)? = null // Make optional
+    onClick: (() -> Unit)? = null
 ) {
     val iconVector = when {
         transaction.isApproved -> Icons.Outlined.CheckCircle
@@ -433,7 +432,7 @@ fun TransactionItem(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(Purple50.copy(alpha = 0.5f))
-            .clickable(enabled = onClick != null) { onClick?.invoke() } // Handle Click
+            .clickable(enabled = onClick != null) { onClick?.invoke() }
             .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically

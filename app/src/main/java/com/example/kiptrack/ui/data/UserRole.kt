@@ -1,4 +1,4 @@
-package com.example.kiptrack.ui.model
+package com.example.kiptrack.ui.data
 
 enum class UserRole(val label: String) {
     MAHASISWA("MAHASISWA"),

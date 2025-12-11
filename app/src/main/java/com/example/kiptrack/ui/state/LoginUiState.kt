@@ -1,6 +1,6 @@
 package com.example.kiptrack.ui.state
 
-import com.example.kiptrack.ui.model.UserRole
+import com.example.kiptrack.ui.data.UserRole
 
 data class LoginUiState(
     val isGeneralLogin: Boolean = true, // true = General, false = Admin

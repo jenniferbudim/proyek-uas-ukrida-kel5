@@ -36,20 +36,6 @@ import com.example.kiptrack.ui.viewmodel.ListUniversitasViewModel
 import com.example.kiptrack.ui.viewmodel.ListUniversitasViewModelFactory
 import com.example.kiptrack.ui.viewmodel.ProdiItem
 
-// --- Custom Colors ---
-private val MainPurple = Color(0xFF9C27B0)
-private val DarkPurple = Color(0xFF4A148C)
-private val TextPurple = Color(0xFF6A1B9A)
-private val TextPink = Color(0xFFD81B60)
-private val CardPurpleBg = Color(0xFFF3E5F5)
-private val LightButtonBg = Color(0xFFE1BEE7)
-
-// Warna Gradient Sesuai Request
-private val GradColor1 = Color(0xFFDECDE9)
-private val GradColor2 = Color(0xFFC9ADDB)
-private val GradColor3 = Color(0xFFB48ECD)
-private val GradColor4 = Color(0xFFB14EA7)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListUniversitasScreen(
@@ -70,7 +56,7 @@ fun ListUniversitasScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var selectedProdi by remember { mutableStateOf<ProdiItem?>(null) }
 
-    // --- SEARCH LOGIC (AKTIF) ---
+    // --- SEARCH LOGIC  ---
     var searchQuery by remember { mutableStateOf("") }
 
     // Filter list berdasarkan input search secara real-time
@@ -113,7 +99,6 @@ fun ListUniversitasScreen(
             }
         }
     ) { paddingValues ->
-        // Background Gradient 4 Warna
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -129,7 +114,7 @@ fun ListUniversitasScreen(
                     .padding(paddingValues)
             ) {
 
-                // --- 1. SEARCH BAR (Paling Atas) ---
+                // --- 1. SEARCH BAR ---
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -165,17 +150,15 @@ fun ListUniversitasScreen(
                         .padding(horizontal = 24.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Icon Topi Wisuda
                     Icon(
                         imageVector = Icons.Filled.School,
                         contentDescription = "Logo Kampus",
-                        tint = DarkPurple, // Atau Color.White sesuai selera kontras
+                        tint = DarkPurple,
                         modifier = Modifier.size(48.dp)
                     )
 
                     Spacer(modifier = Modifier.width(16.dp))
 
-                    // Nama Universitas
                     Text(
                         text = state.universityName.ifEmpty { "Nama Universitas" },
                         fontWeight = FontWeight.Bold,
@@ -189,7 +172,6 @@ fun ListUniversitasScreen(
                     )
                 }
 
-                // Garis Putih Pemisah
                 Divider(
                     color = Color.White.copy(alpha = 0.5f),
                     thickness = 1.dp,
@@ -303,13 +285,12 @@ fun ProgramStudiItem(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp) // Increased slightly for better spacing
+            .height(180.dp)
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = CardPurpleBg),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
-        // CHANGE 1: Use a Column to stack Text Area above Button Area vertically
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -333,7 +314,7 @@ fun ProgramStudiItem(
                     fontFamily = FontFamily.Serif,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    lineHeight = 20.sp // Add line height for better readability on 2 lines
+                    lineHeight = 20.sp
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -364,19 +345,18 @@ fun ProgramStudiItem(
             }
 
             // --- BUTTONS AREA ---
-            // Always sits at the bottom, never overlapped by text
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp), // Padding from the edges of the card
-                horizontalArrangement = Arrangement.End, // Align to right
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Tombol Edit
                 IconButton(
                     onClick = onEditClick,
                     modifier = Modifier
-                        .size(36.dp) // Adjusted size slightly
+                        .size(36.dp)
                         .shadow(elevation = 2.dp, shape = CircleShape)
                         .background(Color.White, CircleShape)
                         .clip(CircleShape)
@@ -576,3 +556,17 @@ fun DeleteConfirmDialog(prodiName: String, onDismiss: () -> Unit, onConfirm: (St
         }
     )
 }
+
+// --- Custom Colors ---
+private val MainPurple = Color(0xFF9C27B0)
+private val DarkPurple = Color(0xFF4A148C)
+private val TextPurple = Color(0xFF6A1B9A)
+private val TextPink = Color(0xFFD81B60)
+private val CardPurpleBg = Color(0xFFF3E5F5)
+private val LightButtonBg = Color(0xFFE1BEE7)
+
+// Warna Gradient Sesuai Request
+private val GradColor1 = Color(0xFFDECDE9)
+private val GradColor2 = Color(0xFFC9ADDB)
+private val GradColor3 = Color(0xFFB48ECD)
+private val GradColor4 = Color(0xFFB14EA7)

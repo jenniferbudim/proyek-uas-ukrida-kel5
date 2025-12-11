@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.kiptrack.R
 import com.example.kiptrack.ui.event.LoginEvent
-import com.example.kiptrack.ui.model.UserRole
+import com.example.kiptrack.ui.data.UserRole
 import com.example.kiptrack.ui.state.LoginUiState
 import com.example.kiptrack.ui.theme.Purple100
 import com.example.kiptrack.ui.theme.Purple50

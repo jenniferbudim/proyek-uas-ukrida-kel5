@@ -25,7 +25,6 @@ data class DashboardAdminUiState(
     val universities: List<University> = emptyList(),
     val clusters: List<Cluster> = emptyList(),
 
-    // State untuk notifikasi aksi (Tambah/Hapus/Edit)
     val actionSuccess: String? = null,
     val actionError: String? = null
 )
@@ -54,14 +53,13 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
                 uiState = uiState.copy(username = adminData.username.ifBlank { "Admin" })
             }
         } catch (e: Exception) {
-            // Ignore error fetching admin name
+
         }
     }
 
     private fun setupRealtimeListeners() {
         uiState = uiState.copy(isLoading = true)
 
-        // 1. Listen Universitas
         univListener = db.collection("universitas").addSnapshotListener { snapshot, e ->
             if (snapshot != null) {
                 val uniList = snapshot.documents.map { doc ->
@@ -79,7 +77,6 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
             }
         }
 
-        // 2. Listen Clusters
         clusterListener = db.collection("konfigurasi").addSnapshotListener { snapshot, e ->
             if (snapshot != null) {
                 val clusterList = mutableListOf<Cluster>()
@@ -90,7 +87,6 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
                     } catch (e: Exception) { 0L }
                 }
 
-                // Non-Kedokteran
                 val docNonKed = snapshot.documents.find { it.id == "aturan_biaya_hidup_non-kedokteran" }
                 docNonKed?.let { doc ->
                     for (i in 1..5) {
@@ -99,7 +95,6 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
                     }
                 }
 
-                // Kedokteran
                 val docKed = snapshot.documents.find { it.id == "aturan_biaya_hidup_kedokteran" }
                 docKed?.let { doc ->
                     for (i in 1..5) {
@@ -113,7 +108,6 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
         }
     }
 
-    // --- FITUR BARU: TAMBAH UNIVERSITAS ---
     fun addUniversity(idUniv: String, namaKampus: String, akreditasi: String, klaster: String) = viewModelScope.launch {
         try {
             val data = hashMapOf(
@@ -122,7 +116,6 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
                 "wilayah_klaster" to (klaster.toLongOrNull() ?: 1)
             )
 
-            // Gunakan ID inputan admin sebagai Document ID agar rapi
             db.collection("universitas").document(idUniv).set(data).await()
             uiState = uiState.copy(actionSuccess = "Universitas berhasil ditambahkan")
         } catch (e: Exception) {
@@ -130,7 +123,6 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
         }
     }
 
-    // --- UPDATE UNIVERSITAS ---
     fun updateUniversity(uniId: String, newAccreditation: String, newCluster: String) = viewModelScope.launch {
         try {
             val clusterNumber = newCluster.toLongOrNull() ?: 0L
@@ -147,7 +139,6 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
         }
     }
 
-    // --- FITUR BARU: HAPUS UNIVERSITAS (DENGAN PASSWORD ADMIN) ---
     fun deleteUniversityWithAuth(uniId: String, adminPassword: String) = viewModelScope.launch {
         val user = auth.currentUser
         if (user == null || user.email == null) {
@@ -156,11 +147,9 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
         }
 
         try {
-            // 1. Re-auth Admin (Verifikasi Password)
             val credential = EmailAuthProvider.getCredential(user.email!!, adminPassword)
             user.reauthenticate(credential).await()
 
-            // 2. Hapus Dokumen Universitas
             db.collection("universitas").document(uniId).delete().await()
 
             uiState = uiState.copy(actionSuccess = "Universitas berhasil dihapus")
@@ -169,7 +158,6 @@ class DashboardAdminViewModel(private val uid: String) : ViewModel() {
         }
     }
 
-    // --- UPDATE CLUSTER ---
     fun updateCluster(clusterId: String, newNominal: Long) = viewModelScope.launch {
         val isKedokteran = clusterId.startsWith("ked_")
         val clusterNum = clusterId.last().toString()

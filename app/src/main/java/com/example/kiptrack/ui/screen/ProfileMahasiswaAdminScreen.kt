@@ -36,18 +36,6 @@ import com.example.kiptrack.ui.viewmodel.DropdownItem
 import com.example.kiptrack.ui.viewmodel.ProfileAdminViewModel
 import com.example.kiptrack.ui.viewmodel.ProfileAdminViewModelFactory
 
-// --- WARNA ---
-val GradientStart = Color(0xFFDECDE9)
-val GradientMiddle1 = Color(0xFFC9ADDB)
-val GradientMiddle2 = Color(0xFFB48ECD)
-val GradientEnd = Color(0xFFB14EA7)
-
-// Warna UI
-val LabelColor = Color(0xFFB14EA7)
-val NameColor = Color(0xFFB14EA7)
-val FieldValueColor = Color(0xFF894EB1)
-val FieldBackground = Color(0xFFF7F4F9)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfilMahasiswaAdminScreen(
@@ -77,31 +65,28 @@ fun ProfilMahasiswaAdminScreen(
                 )
             )
     ) {
-        // --- 1. WAVE BACKGROUND (Paling Atas, di belakang konten) ---
-        // Saya menambahkan Canvas ini untuk menggambar gelombang putih transparan
+        // --- 1. WAVE BACKGROUND  ---
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(250.dp) // Tinggi area gelombang
+                .height(250.dp)
                 .align(Alignment.TopCenter)
         ) {
             val width = size.width
             val height = size.height
 
-            // Gelombang 1 (Lebih besar, lebih transparan)
             val path1 = Path().apply {
                 moveTo(0f, 0f)
                 lineTo(0f, height * 0.6f)
                 quadraticBezierTo(
-                    width * 0.5f, height * 1.0f, // Titik kontrol lengkungan bawah
-                    width, height * 0.5f         // Titik akhir
+                    width * 0.5f, height * 1.0f,
+                    width, height * 0.5f
                 )
                 lineTo(width, 0f)
                 close()
             }
             drawPath(path1, Color.White.copy(alpha = 0.15f))
 
-            // Gelombang 2 (Lebih kecil, sedikit lebih terlihat untuk aksen)
             val path2 = Path().apply {
                 moveTo(0f, 0f)
                 lineTo(0f, height * 0.4f)
@@ -116,7 +101,7 @@ fun ProfilMahasiswaAdminScreen(
         }
 
 
-        // --- 2. Custom Top Bar (Di atas Wave) ---
+        // --- 2. Custom Top Bar  ---
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -146,7 +131,7 @@ fun ProfilMahasiswaAdminScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 100.dp) // Disesuaikan sedikit agar pas dengan wave
+                .padding(top = 100.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             // Box Wrapper untuk Avatar + Card
@@ -160,7 +145,7 @@ fun ProfilMahasiswaAdminScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 50.dp) // Turunkan kartu agar avatar overlap
+                        .padding(top = 50.dp)
                         .shadow(8.dp, RoundedCornerShape(24.dp)),
                     shape = RoundedCornerShape(24.dp),
                     color = Color.White
@@ -170,7 +155,6 @@ fun ProfilMahasiswaAdminScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp, vertical = 24.dp)
                     ) {
-                        // Spacer untuk menghindari tabrakan dengan Nama
                         Spacer(Modifier.height(50.dp))
 
                         // --- INPUT FIELDS ---
@@ -368,3 +352,14 @@ fun SearchableDropdownField(label: String, currentValue: String, options: List<D
         }
     }
 }
+
+val GradientStart = Color(0xFFDECDE9)
+val GradientMiddle1 = Color(0xFFC9ADDB)
+val GradientMiddle2 = Color(0xFFB48ECD)
+val GradientEnd = Color(0xFFB14EA7)
+
+// Warna UI
+val LabelColor = Color(0xFFB14EA7)
+val NameColor = Color(0xFFB14EA7)
+val FieldValueColor = Color(0xFF894EB1)
+val FieldBackground = Color(0xFFF7F4F9)

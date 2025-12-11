@@ -100,7 +100,6 @@ class ProfileMahasiswaViewModel(private val uid: String) : ViewModel() {
     }
 }
 
-// Factory Standar
 class ProfileMahasiswaViewModelFactory(private val uid: String) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {

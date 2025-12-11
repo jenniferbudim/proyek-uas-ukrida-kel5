@@ -7,7 +7,7 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.ui.graphics.vector.ImageVector
 
 enum class DetailTab(val icon: ImageVector, val label: String) {
-    Home(Icons.Filled.Home, "Home"), // Image 2 (List)
-    Konfirmasi(Icons.Outlined.Email, "Konfirmasi"), // Image 1 (Charts - User Requested)
-    Perincian(Icons.Outlined.Visibility, "Perincian") // Image 3 (Detail)
+    Home(Icons.Filled.Home, "Home"),
+    Konfirmasi(Icons.Outlined.Email, "Konfirmasi"),
+    Perincian(Icons.Outlined.Visibility, "Perincian")
 }

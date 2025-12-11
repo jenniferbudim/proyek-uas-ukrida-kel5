@@ -28,8 +28,6 @@ val AvatarBackground = Color(0xFFD1C4E9)
 val BackgroundGradientEnd = Color(0xFFEDE7F6)
 
 val CardBg = Color.White
-
-val PieGreen = Color(0xFF77BB9F)
 val PieOrange = Color(0xFFE64A19)
 val PieRed = Color(0xFFD32F2F)
 
