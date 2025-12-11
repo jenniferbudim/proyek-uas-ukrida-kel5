@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kiptrack"
+    namespace = "com.ukrida.kiptrack"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.kiptrack"
+        applicationId = "com.ukrida.kiptrack"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
