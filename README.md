@@ -12,7 +12,7 @@ This app simulates the synergy between University Administrators, Students, and 
 Below are the ID dan Password for the access credentials to access the full functionality of the application!
 
 Admin: \
-Username: admin01
+Username: admin01 \
 Password: admin123
 
 Mahasiswa: \
