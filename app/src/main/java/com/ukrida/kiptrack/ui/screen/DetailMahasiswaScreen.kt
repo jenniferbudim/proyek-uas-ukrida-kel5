@@ -346,10 +346,40 @@ fun TabContentCharts(state: DetailMahasiswaUiState, viewModel: DetailMahasiswaVi
                             }
                         }
                         Spacer(modifier = Modifier.height(16.dp))
+
+                        // --- LOGIKA SEMESTER AKHIR (UPDATED) ---
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Column { Text("Pelanggaran Sem. Ini", color = Color.White.copy(0.8f), fontSize = 11.sp); Text(formatRupiahDetail(state.pelanggaranSemesterIni), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
-                            Column(horizontalAlignment = Alignment.End) { Text("Uang Saku Sem. Depan", color = Color.White.copy(0.8f), fontSize = 11.sp, textAlign = TextAlign.End); Text(formatRupiahDetail(state.estimasiPendapatanDepan), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.End) }
+                            Column {
+                                Text("Pelanggaran Sem. Ini", color = Color.White.copy(0.8f), fontSize = 11.sp)
+                                Text(formatRupiahDetail(state.pelanggaranSemesterIni), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            }
+
+                            Column(horizontalAlignment = Alignment.End) {
+                                // Cek Semester Akhir
+                                val isFinalSemester = (state.jenjang.contains("S1", ignoreCase = true) && state.semester >= 8) ||
+                                        (state.jenjang.contains("D3", ignoreCase = true) && state.semester >= 6)
+
+                                val labelText = if (isFinalSemester) "Status" else "Uang Saku Sem. Depan"
+
+                                // Logic Value (Bermasalah / Aman / Rupiah)
+                                val valueText = if (isFinalSemester) {
+                                    if (state.pelanggaranSemesterIni > 0) "Bermasalah" else "Aman"
+                                } else {
+                                    formatRupiahDetail(state.estimasiPendapatanDepan)
+                                }
+
+                                // Logic Warna (Merah / Hijau / Putih)
+                                val valueColor = if (isFinalSemester) {
+                                    if (state.pelanggaranSemesterIni > 0) PieRed else SuccessGreen
+                                } else {
+                                    Color.White
+                                }
+
+                                Text(labelText, color = Color.White.copy(0.8f), fontSize = 11.sp, textAlign = TextAlign.End)
+                                Text(valueText, color = valueColor, fontWeight = FontWeight.Bold, fontSize = 14.sp, textAlign = TextAlign.End)
+                            }
                         }
+                        // ----------------------------------------
                     }
                 }
             }

@@ -22,6 +22,10 @@ data class DashboardMahasiswaUiState(
     val totalViolations: Long = 0L,
     val nextSemesterAllowance: Long = 0L,
 
+    // Data Akademik
+    val semester: Int = 1,
+    val jenjang: String = "S1",
+
     val graphData: List<Long> = List(12) { 0L },
     val transactionHistory: List<Transaction> = emptyList(),
     val selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR)
@@ -75,6 +79,11 @@ class DashboardMahasiswaViewModel(private val uid: String) : ViewModel() {
                     currentSaldo = saldo,
                     totalViolations = pelanggaran,
                     nextSemesterAllowance = semesterDepanAllowance,
+
+                    // UPDATE STATE DISINI
+                    semester = semesterNow,
+                    jenjang = jenjang,
+
                     isLoading = false
                 )
 

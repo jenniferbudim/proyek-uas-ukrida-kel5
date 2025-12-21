@@ -37,6 +37,11 @@ data class DetailMahasiswaUiState(
     val pelanggaranSemesterIni: Long = 0L,
     val estimasiPendapatanDepan: Long = 0L,
 
+    // --- TAMBAHAN DATA AKADEMIK ---
+    val semester: Int = 1,
+    val jenjang: String = "S1",
+    // -----------------------------
+
     val transactionList: List<Transaction> = emptyList(),
     val graphData: List<Long> = List(12) { 0L },
     val categoryData: List<CategorySummary> = emptyList(),
@@ -82,7 +87,7 @@ class DetailMahasiswaViewModel(
             if (!docUser.exists()) return@launch
 
             val dataUser = docUser.data ?: emptyMap()
-            val semesterNow = (dataUser["semester_berjalan"] as? Number)?.toInt() ?: 1
+            val semesterNow = (dataUser["semester_berjalan"] as? Number)?.toLong()?.toInt() ?: 1
             val jenjang = dataUser["jenjang"] as? String ?: "S1"
             val lastUpdate = dataUser["last_update_period"] as? String ?: ""
             val currentSaldo = (dataUser["saldo_saat_ini"] as? Number)?.toLong() ?: 0L
@@ -108,7 +113,10 @@ class DetailMahasiswaViewModel(
                 saldo = currentSaldo,
                 photoProfile = dataUser["foto_profil"] as? String ?: "",
                 pelanggaranSemesterIni = currentViolationsDB,
-                estimasiPendapatanDepan = estimasiDepan
+                estimasiPendapatanDepan = estimasiDepan,
+                // --- UPDATE STATE SEMESTER & JENJANG ---
+                semester = semesterNow,
+                jenjang = jenjang
             )
 
             checkAndPerformSemesterUpdate(semesterNow, jenjang, lastUpdate, estimasiDepan, currentSaldo)
@@ -156,6 +164,7 @@ class DetailMahasiswaViewModel(
                 val status = data["status"] as? String ?: "MENUNGGU"
                 val categoryName = data["kategori"] as? String ?: "Lainnya"
 
+                // Masukkan SEMUA transaksi ke Pie Chart
                 val currentTotal = categoryMap[categoryName] ?: 0L
                 categoryMap[categoryName] = currentTotal + amount
 

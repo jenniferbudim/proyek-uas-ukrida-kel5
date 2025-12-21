@@ -127,7 +127,9 @@ fun DashboardMahasiswaScreen(
                         nextSemesterAllowance = state.nextSemesterAllowance,
                         graphData = state.graphData,
                         selectedYear = state.selectedYear,
-                        onYearChange = viewModel::changeYear
+                        onYearChange = viewModel::changeYear,
+                        semester = state.semester,
+                        jenjang = state.jenjang
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
@@ -318,7 +320,9 @@ fun SaldoChartSection(
     nextSemesterAllowance: Long,
     graphData: List<Long>,
     selectedYear: Int,
-    onYearChange: (Int) -> Unit
+    onYearChange: (Int) -> Unit,
+    semester: Int,
+    jenjang: String
 ) {
     val months = listOf("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
     Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp), modifier = Modifier.fillMaxWidth()) {
@@ -334,8 +338,30 @@ fun SaldoChartSection(
                     Text(text = formatRupiah(totalViolations), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PieRed)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text(text = "Sem. Depan", fontSize = 11.sp, color = Purple300, fontWeight = FontWeight.SemiBold)
-                    Text(text = formatRupiah(nextSemesterAllowance), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PurpleDark)
+                    // --- LOGIKA SEMESTER AKHIR ---
+                    val isFinalSemester = (jenjang.contains("S1", ignoreCase = true) && semester >= 8) ||
+                            (jenjang.contains("D3", ignoreCase = true) && semester >= 6)
+
+                    // Jika Semester Akhir -> Label jadi "Status"
+                    val labelText = if (isFinalSemester) "Status" else "Sem. Depan"
+
+                    // Jika Semester Akhir & Ada Pelanggaran -> "Bermasalah" (Merah)
+                    // Jika Semester Akhir & Tidak Ada Pelanggaran -> "Aman" (Hijau)
+                    // Jika Bukan Semester Akhir -> Tampilkan Nominal (Ungu)
+                    val valueText = if (isFinalSemester) {
+                        if (totalViolations > 0) "Bermasalah" else "Aman"
+                    } else {
+                        formatRupiah(nextSemesterAllowance)
+                    }
+
+                    val valueColor = if (isFinalSemester) {
+                        if (totalViolations > 0) PieRed else SuccessGreen
+                    } else {
+                        PurpleDark
+                    }
+
+                    Text(text = labelText, fontSize = 11.sp, color = Purple300, fontWeight = FontWeight.SemiBold)
+                    Text(text = valueText, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = valueColor)
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))

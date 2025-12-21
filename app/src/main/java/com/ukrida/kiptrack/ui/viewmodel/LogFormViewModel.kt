@@ -37,11 +37,9 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
     private val db = FirebaseFirestore.getInstance()
 
     fun onDateChange(value: String) {
-
         try {
             val inputFormat = SimpleDateFormat("dd / MM / yyyy", Locale.US)
             val outputFormat = SimpleDateFormat("MMM dd/yyyy", Locale.US)
-
             val date = inputFormat.parse(value)
             if (date != null) {
                 val formatted = outputFormat.format(date).uppercase()
@@ -84,10 +82,17 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
     }
 
     fun submitReport() = viewModelScope.launch {
+        // 1. Validasi Input Kosong
         if (uiState.dateInput.isBlank() || uiState.description.isBlank() ||
             uiState.quantity.isBlank() || uiState.unitPrice.isBlank() ||
             uiState.category == null) {
             uiState = uiState.copy(errorMessage = "Mohon lengkapi semua data!")
+            return@launch
+        }
+
+        // 2. Validasi Minimal Nominal
+        if (uiState.totalCalculated <= 0) {
+            uiState = uiState.copy(errorMessage = "Total nominal tidak boleh 0!")
             return@launch
         }
 
@@ -110,12 +115,19 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
                 "created_at" to System.currentTimeMillis()
             )
 
+            // --- JALANKAN TRANSAKSI DB ---
             db.runTransaction { transaction ->
                 val userRef = db.collection("users").document(uid)
                 val reportRef = userRef.collection("laporan_keuangan").document()
 
                 val snapshot = transaction.get(userRef)
                 val currentSaldo = snapshot.getLong("saldo_saat_ini") ?: 0L
+
+                // --- PENGECEKAN SALDO TIDAK BOLEH MINUS ---
+                if (totalNominal > currentSaldo) {
+                    throw Exception("Saldo tidak mencukupi untuk transaksi ini.")
+                }
+
                 val newSaldo = currentSaldo - totalNominal
 
                 transaction.update(userRef, "saldo_saat_ini", newSaldo)
@@ -125,7 +137,9 @@ class LogFormViewModel(private val uid: String) : ViewModel() {
             uiState = uiState.copy(isLoading = false, isSuccess = true)
 
         } catch (e: Exception) {
-            uiState = uiState.copy(isLoading = false, errorMessage = "Gagal simpan: ${e.message}")
+            // Tampilkan pesan error yang sesuai (termasuk "Saldo tidak mencukupi")
+            val msg = if (e.message?.contains("Saldo") == true) e.message else "Gagal simpan: ${e.message}"
+            uiState = uiState.copy(isLoading = false, errorMessage = msg)
         }
     }
 }
