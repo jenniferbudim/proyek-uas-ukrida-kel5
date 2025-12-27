@@ -32,6 +32,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ukrida.kiptrack.ui.theme.Purple300
+import com.ukrida.kiptrack.ui.theme.Purple50
+import com.ukrida.kiptrack.ui.theme.PurplePrimary
 import com.ukrida.kiptrack.ui.viewmodel.ListUniversitasViewModel
 import com.ukrida.kiptrack.ui.viewmodel.ListUniversitasViewModelFactory
 import com.ukrida.kiptrack.ui.viewmodel.ProdiItem
@@ -123,7 +126,7 @@ fun ListUniversitasScreen(
                     TextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Cari Program Studi", color = Color.Gray.copy(alpha = 0.6f)) },
+                        placeholder = { Text("Cari Program Studi", color = PurplePrimary.copy(alpha = 0.6f)) },
                         leadingIcon = {
                             Icon(Icons.Default.Search, contentDescription = "Search", tint = MainPurple)
                         },
@@ -400,18 +403,34 @@ fun AddProdiDialog(onDismiss: () -> Unit, onSave: (String, String, String) -> Un
     var selectedJenjang by remember { mutableStateOf("S1") }
     var selectedKategori by remember { mutableStateOf("non-kedokteran") }
 
+    // Warna custom untuk TextField
+    val purpleTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TextPurpleDark,
+        unfocusedTextColor = TextPurpleDark,
+        focusedLabelColor = TextPurpleDark,
+        unfocusedLabelColor = TextPurpleDark.copy(alpha = 0.7f),
+        focusedBorderColor = TextPurpleDark,
+        unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+        cursorColor = TextPurpleDark
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tambah Program Studi", fontWeight = FontWeight.Bold, color = MainPurple) },
+        containerColor = Purple50,
+        title = {
+            Text("Tambah Program Studi", fontWeight = FontWeight.Bold, color = TextPurpleDark)
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = namaProdi,
                     onValueChange = { namaProdi = it },
                     label = { Text("Nama Prodi") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = purpleTextFieldColors
                 )
-                Text("Jenjang:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = DarkPurple)
+
+                Text("Jenjang:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPurpleDark)
                 Row {
                     listOf("D3", "S1").forEach { item ->
                         Row(
@@ -423,29 +442,34 @@ fun AddProdiDialog(onDismiss: () -> Unit, onSave: (String, String, String) -> Un
                             RadioButton(
                                 selected = (selectedJenjang == item),
                                 onClick = { selectedJenjang = item },
-                                colors = RadioButtonDefaults.colors(selectedColor = MainPurple)
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = TextPurpleDark,
+                                    unselectedColor = Purple300
+                                )
                             )
-                            Text(text = item)
+                            Text(text = item, color = TextPurpleDark)
                         }
                     }
                 }
-                Text("Kategori:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = DarkPurple)
-                Row {
+
+                Text("Kategori:", fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = TextPurpleDark)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf("non-kedokteran", "kedokteran").forEach { item ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
-                                .padding(end = 8.dp)
+                                .fillMaxWidth()
                                 .clickable { selectedKategori = item }
                         ) {
                             RadioButton(
                                 selected = (selectedKategori == item),
                                 onClick = { selectedKategori = item },
-                                colors = RadioButtonDefaults.colors(selectedColor = MainPurple)
+                                colors = RadioButtonDefaults.colors(selectedColor = TextPurpleDark, unselectedColor = Purple300)
                             )
                             Text(
                                 text = if(item == "non-kedokteran") "Non-Kedokteran" else "Kedokteran",
-                                fontSize = 12.sp
+                                fontSize = 14.sp,
+                                color = TextPurpleDark
                             )
                         }
                     }
@@ -455,11 +479,15 @@ fun AddProdiDialog(onDismiss: () -> Unit, onSave: (String, String, String) -> Un
         confirmButton = {
             Button(
                 onClick = { if (namaProdi.isNotBlank()) onSave(namaProdi, selectedJenjang, selectedKategori) },
-                colors = ButtonDefaults.buttonColors(containerColor = MainPurple)
-            ) { Text("Simpan") }
+                colors = ButtonDefaults.buttonColors(containerColor = TextPurpleDark)
+            ) {
+                Text("Simpan", color = Color.White)
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Batal", color = MainPurple) }
+            TextButton(onClick = onDismiss) {
+                Text("Batal", color = PurplePrimary)
+            }
         }
     )
 }
@@ -471,16 +499,30 @@ fun EditProdiDialog(prodi: ProdiItem, onDismiss: () -> Unit, onSave: (String, St
     var jenjang by remember { mutableStateOf(prodi.jenjang) }
     var expanded by remember { mutableStateOf(false) }
 
+    val purpleTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TextPurpleDark,
+        unfocusedTextColor = TextPurpleDark,
+        focusedLabelColor = TextPurpleDark,
+        unfocusedLabelColor = TextPurpleDark.copy(alpha = 0.7f),
+        focusedBorderColor = TextPurpleDark,
+        unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+        cursorColor = TextPurpleDark,
+        focusedTrailingIconColor = TextPurpleDark,
+        unfocusedTrailingIconColor = TextPurpleDark
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Program Studi", color = MainPurple, fontWeight = FontWeight.Bold) },
+        containerColor = Purple50,
+        title = { Text("Edit Program Studi", color = TextPurpleDark, fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 OutlinedTextField(
                     value = nama,
                     onValueChange = { nama = it },
                     label = { Text("Nama Prodi") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = purpleTextFieldColors
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 ExposedDropdownMenuBox(
@@ -493,19 +535,22 @@ fun EditProdiDialog(prodi: ProdiItem, onDismiss: () -> Unit, onSave: (String, St
                         readOnly = true,
                         label = { Text("Jenjang") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = purpleTextFieldColors
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(Purple50)
                     ) {
                         listOf("S1", "D3").forEach { item ->
                             DropdownMenuItem(
-                                text = { Text(item) },
+                                text = { Text(item, color = TextPurpleDark) },
                                 onClick = {
                                     jenjang = item
                                     expanded = false
-                                }
+                                },
+                                colors = MenuDefaults.itemColors()
                             )
                         }
                     }
@@ -515,11 +560,11 @@ fun EditProdiDialog(prodi: ProdiItem, onDismiss: () -> Unit, onSave: (String, St
         confirmButton = {
             Button(
                 onClick = { onSave(nama, jenjang) },
-                colors = ButtonDefaults.buttonColors(containerColor = MainPurple)
-            ) { Text("Simpan") }
+                colors = ButtonDefaults.buttonColors(containerColor = TextPurpleDark)
+            ) { Text("Simpan", color = Color.White) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Batal", color = Color.Gray) }
+            TextButton(onClick = onDismiss) { Text("Batal", color = PurplePrimary) }
         }
     )
 }
@@ -552,7 +597,7 @@ fun DeleteConfirmDialog(prodiName: String, onDismiss: () -> Unit, onConfirm: (St
             ) { Text("Hapus") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Batal", color = Color.Gray) }
+            TextButton(onClick = onDismiss) { Text("Batal", color = PurplePrimary) }
         }
     )
 }

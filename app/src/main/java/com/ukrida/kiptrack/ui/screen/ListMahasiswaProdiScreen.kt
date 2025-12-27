@@ -36,6 +36,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ukrida.kiptrack.ui.theme.Purple300
 import com.ukrida.kiptrack.ui.theme.Purple50
+import com.ukrida.kiptrack.ui.theme.PurplePrimary
 import com.ukrida.kiptrack.ui.utils.ImageUtils
 import com.ukrida.kiptrack.ui.viewmodel.ListMahasiswaViewModel
 import com.ukrida.kiptrack.ui.viewmodel.ListMahasiswaViewModelFactory
@@ -208,7 +209,7 @@ fun DeleteStudentDialog(studentName: String, onDismiss: () -> Unit, onConfirm: (
             }
         },
         confirmButton = { Button(onClick = { onConfirm(password) }, colors = ButtonDefaults.buttonColors(containerColor = Color.Red), enabled = password.isNotBlank()) { Text("Hapus", color = Color.White) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal", color = Color.Gray) } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal", color = PurplePrimary) } }
     )
 }
 
@@ -247,10 +248,46 @@ fun AddStudentFormStep1(
             Text("Tambah Mahasiswa (1/2)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPurpleDark)
             Spacer(Modifier.height(16.dp))
 
-            OutlinedTextField(value = nama, onValueChange = { nama = it }, label = { Text("Nama Lengkap") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email Login") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password Login") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = nim, onValueChange = { nim = it }, label = { Text("NIM") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = nama, onValueChange = { nama = it }, label = { Text("Nama Lengkap") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextPurpleDark,
+                unfocusedTextColor = TextPurpleDark,
+                focusedLabelColor = TextPurpleDark,
+                unfocusedLabelColor = TextPurpleDark.copy(alpha = 0.7f),
+                focusedBorderColor = TextPurpleDark,
+                unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+                cursorColor = TextPurpleDark
+            )
+            )
+            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email Login") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextPurpleDark,
+                unfocusedTextColor = TextPurpleDark,
+                focusedLabelColor = TextPurpleDark,
+                unfocusedLabelColor = TextPurpleDark.copy(alpha = 0.7f),
+                focusedBorderColor = TextPurpleDark,
+                unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+                cursorColor = TextPurpleDark
+            )
+            )
+            OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password Login") }, modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextPurpleDark,
+                unfocusedTextColor = TextPurpleDark,
+                focusedLabelColor = TextPurpleDark,
+                unfocusedLabelColor = TextPurpleDark.copy(alpha = 0.7f),
+                focusedBorderColor = TextPurpleDark,
+                unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+                cursorColor = TextPurpleDark
+            )
+            )
+            OutlinedTextField(value = nim, onValueChange = { nim = it }, label = { Text("NIM") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = TextPurpleDark,
+                unfocusedTextColor = TextPurpleDark,
+                focusedLabelColor = TextPurpleDark,
+                unfocusedLabelColor = TextPurpleDark.copy(alpha = 0.7f),
+                focusedBorderColor = TextPurpleDark,
+                unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+                cursorColor = TextPurpleDark
+            )
+            )
 
             Spacer(Modifier.height(8.dp))
             Text("Semester Berjalan:", fontSize = 14.sp, color = TextPurpleDark)
@@ -291,15 +328,25 @@ fun AddParentFormStep2(
     var password by remember { mutableStateOf(initialPass) }
     var idWali by remember { mutableStateOf(initialId) }
 
+    val customTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TextPurpleDark,
+        unfocusedTextColor = TextPurpleDark,
+        focusedLabelColor = TextPurpleDark,
+        unfocusedLabelColor = TextPurpleDark.copy(alpha = 0.7f),
+        focusedBorderColor = TextPurpleDark,
+        unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+        cursorColor = TextPurpleDark
+    )
+
     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
         Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
             Text("Data Orang Tua/Wali (2/2)", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPurpleDark)
             Spacer(Modifier.height(16.dp))
 
-            OutlinedTextField(value = nama, onValueChange = { nama = it }, label = { Text("Nama Wali") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = idWali, onValueChange = { idWali = it }, label = { Text("ID Wali (Untuk Login)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email Wali (Aktif)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password Login") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(value = nama, onValueChange = { nama = it }, label = { Text("Nama Wali") }, modifier = Modifier.fillMaxWidth(), colors = customTextFieldColors)
+            OutlinedTextField(value = idWali, onValueChange = { idWali = it }, label = { Text("ID Wali (Untuk Login)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(), colors = customTextFieldColors)
+            OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Email Wali (Aktif)") }, modifier = Modifier.fillMaxWidth(), colors = customTextFieldColors)
+            OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Password Login") }, modifier = Modifier.fillMaxWidth(), colors = customTextFieldColors)
 
             if (errorMsg != null) Text(errorMsg, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
 
@@ -309,7 +356,7 @@ fun AddParentFormStep2(
                 TextButton(
                     onClick = { onBack(nama, email, password, idWali) },
                     enabled = !isLoading
-                ) { Text("Kembali", color = Color.Gray) }
+                ) { Text("Kembali", color = PurplePrimary) }
 
                 Button(
                     onClick = { onSubmit(nama, email, password, idWali) },
@@ -330,9 +377,16 @@ fun SemesterDropdown(maxSem: Int, current: String, onSelected: (String) -> Unit)
     val options = (1..maxSem).map { it.toString() }
 
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-        OutlinedTextField(value = current, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }, modifier = Modifier.menuAnchor().fillMaxWidth())
+        OutlinedTextField(value = current, onValueChange = {}, readOnly = true, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }, modifier = Modifier.menuAnchor().fillMaxWidth(), colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = TextPurpleDark,
+            unfocusedTextColor = TextPurpleDark,
+            focusedBorderColor = TextPurpleDark,
+            unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+            focusedTrailingIconColor = TextPurpleDark,
+            unfocusedTrailingIconColor = TextPurpleDark
+        ))
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { label -> DropdownMenuItem(text = { Text(label) }, onClick = { onSelected(label); expanded = false }) }
+            options.forEach { label -> DropdownMenuItem(text = { Text(label, color = TextPurpleDark) }, onClick = { onSelected(label); expanded = false }) }
         }
     }
 }

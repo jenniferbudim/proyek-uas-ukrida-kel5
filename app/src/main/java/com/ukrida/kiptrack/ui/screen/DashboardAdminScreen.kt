@@ -256,25 +256,76 @@ fun AddUniversityDialog(
     var selectedCluster by remember { mutableStateOf("1") }
     var expanded by remember { mutableStateOf(false) }
 
+    // Definisi warna text field agar konsisten
+    val purpleTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TextPurpleDark,
+        unfocusedTextColor = TextPurpleDark,
+        focusedLabelColor = TextPurpleDark,
+        unfocusedLabelColor = TextPurpleDark.copy(alpha = 0.7f),
+        focusedBorderColor = TextPurpleDark,
+        unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+        cursorColor = TextPurpleDark,
+        focusedTrailingIconColor = TextPurpleDark,
+        unfocusedTrailingIconColor = TextPurpleDark
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tambah Universitas", fontWeight = FontWeight.Bold, color = Purple300) },
+        containerColor = Purple50,
+        title = {
+            Text("Tambah Universitas", fontWeight = FontWeight.Bold, color = TextPurpleDark)
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(value = idUniv, onValueChange = { idUniv = it }, label = { Text("ID Universitas (Unik)") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = namaKampus, onValueChange = { namaKampus = it }, label = { Text("Nama Kampus") }, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(value = akreditasi, onValueChange = { akreditasi = it }, label = { Text("Akreditasi") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = idUniv,
+                    onValueChange = { idUniv = it },
+                    label = { Text("ID Universitas (Unik)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = purpleTextFieldColors
+                )
+                OutlinedTextField(
+                    value = namaKampus,
+                    onValueChange = { namaKampus = it },
+                    label = { Text("Nama Kampus") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = purpleTextFieldColors
+                )
+                OutlinedTextField(
+                    value = akreditasi,
+                    onValueChange = { akreditasi = it },
+                    label = { Text("Akreditasi") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = purpleTextFieldColors
+                )
 
-                // Dropdown Cluster 1-5
-                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.background(Purple50)
+                ) {
                     OutlinedTextField(
-                        value = selectedCluster, onValueChange = {}, readOnly = true, label = { Text("Wilayah Klaster") },
+                        value = "Klaster $selectedCluster",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Wilayah Klaster") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier.menuAnchor().fillMaxWidth(),
+                        colors = purpleTextFieldColors
                     )
-                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(Purple50)
+                    ) {
                         (1..5).forEach { num ->
-                            DropdownMenuItem(text = { Text("$num") }, onClick = { selectedCluster = num.toString(); expanded = false })
+                            DropdownMenuItem(
+                                text = { Text("$num", color = TextPurpleDark) },
+                                onClick = {
+                                    selectedCluster = num.toString()
+                                    expanded = false
+                                }
+                            )
                         }
                     }
                 }
@@ -287,10 +338,14 @@ fun AddUniversityDialog(
                         onSave(idUniv, namaKampus, akreditasi, selectedCluster)
                     }
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Purple300)
-            ) { Text("Simpan") }
+                colors = ButtonDefaults.buttonColors(containerColor = TextPurpleDark)
+            ) { Text("Simpan", color = Color.White) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Batal", color = Purple300) } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Batal", color = Color.Gray)
+            }
+        }
     )
 }
 
@@ -304,25 +359,57 @@ fun EditUniversityDialog(
     var accreditation by remember { mutableStateOf(university.accreditation) }
     var cluster by remember { mutableStateOf(university.cluster) }
 
+    val purpleTextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TextPurpleDark,
+        unfocusedTextColor = TextPurpleDark,
+        focusedLabelColor = TextPurpleDark,
+        unfocusedLabelColor = TextPurpleDark.copy(alpha = 0.7f),
+        focusedBorderColor = TextPurpleDark,
+        unfocusedBorderColor = TextPurpleDark.copy(alpha = 0.5f),
+        cursorColor = TextPurpleDark
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Universitas", fontWeight = FontWeight.Bold, color = Purple300) },
+        containerColor = Purple50,
+        title = { Text("Edit Universitas", fontWeight = FontWeight.Bold, color = TextPurpleDark) },
         text = {
             Column {
-                Text(university.name, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 16.dp))
-                OutlinedTextField(value = accreditation, onValueChange = { accreditation = it }, label = { Text("Akreditasi") }, modifier = Modifier.fillMaxWidth())
+                Text(
+                    text = university.name,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPurpleDark,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                OutlinedTextField(
+                    value = accreditation,
+                    onValueChange = { accreditation = it },
+                    label = { Text("Akreditasi") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = purpleTextFieldColors
+                )
                 Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(value = cluster, onValueChange = { cluster = it }, label = { Text("Cluster (1-5)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = cluster,
+                    onValueChange = { cluster = it },
+                    label = { Text("Cluster (1-5)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = purpleTextFieldColors
+                )
             }
         },
         confirmButton = {
-            Button(onClick = { onSave(accreditation, cluster) }, colors = ButtonDefaults.buttonColors(containerColor = Purple300)) { Text("Simpan") }
+            Button(
+                onClick = { onSave(accreditation, cluster) },
+                colors = ButtonDefaults.buttonColors(containerColor = TextPurpleDark)
+            ) { Text("Simpan", color = Color.White) }
         },
         dismissButton = {
             Row {
                 TextButton(onClick = onDelete) { Text("Hapus", color = Color.Red) }
                 Spacer(modifier = Modifier.width(8.dp))
-                TextButton(onClick = onDismiss) { Text("Batal", color = Purple300) }
+                TextButton(onClick = onDismiss) { Text("Batal", color = Color.Gray) }
             }
         }
     )
@@ -376,11 +463,26 @@ fun EditClusterDialog(cluster: Cluster, onDismiss: () -> Unit, onSave: (Long) ->
 @Composable
 fun AdminSearchBar(query: String, onQueryChange: (String) -> Unit, placeholder: String, modifier: Modifier = Modifier) {
     TextField(
-        value = query, onValueChange = onQueryChange, placeholder = { Text(placeholder, color = Color.Gray) },
-        modifier = modifier.fillMaxWidth().padding(horizontal = 20.dp).shadow(4.dp, RoundedCornerShape(50)).clip(RoundedCornerShape(50)),
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = { Text(placeholder, color = Purple200) },
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .shadow(4.dp, RoundedCornerShape(50))
+            .clip(RoundedCornerShape(50)),
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Purple300) },
-        colors = TextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, disabledContainerColor = Color.White, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
-        singleLine = true, textStyle = TextStyle(color = Purple300, fontSize = 16.sp)
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+            disabledContainerColor = Color.White,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            focusedTextColor = Purple300,
+            unfocusedTextColor = Purple300
+        ),
+        singleLine = true,
+        textStyle = TextStyle(fontSize = 16.sp)
     )
 }
 
